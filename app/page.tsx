@@ -1,65 +1,193 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+/**
+ * Home Page
+ * 
+ * Entry point with Create Game and Join Game options
+ */
+
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { GuestNamePrompt } from '@/components/auth/GuestNamePrompt';
+import { supabase } from '@/lib/supabase/client';
+import { signInAsGuest } from '@/lib/auth/guest';
+
+export default function HomePage() {
+  const router = useRouter();
+  const [showNamePrompt, setShowNamePrompt] = useState(false);
+  const [promptAction, setPromptAction] = useState<'create' | 'join'>('create');
+  const [gameId, setGameId] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleCreateGame = () => {
+    setPromptAction('create');
+    setShowNamePrompt(true);
+  };
+
+  const handleJoinGame = () => {
+    if (!gameId.trim()) {
+      setError('Please enter a game ID');
+      return;
+    }
+    setPromptAction('join');
+    setShowNamePrompt(true);
+  };
+
+  const handleNameSubmit = async (displayName: string) => {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Sign in as guest
+      const { user, error: authError } = await signInAsGuest(displayName);
+      
+      if (authError || !user) {
+        throw new Error(authError || 'Failed to sign in');
+      }
+
+      if (promptAction === 'create') {
+        // Create new game
+        const { data, error: rpcError } = await supabase.rpc('create_game_session', {
+          p_display_name: displayName,
+          p_num_players: 4,
+          p_enable_shortcuts: true,
+        });
+
+        if (rpcError) throw rpcError;
+
+        if (data && data.game_id) {
+          router.push(`/game/${data.game_id}`);
+        }
+      } else {
+        // Join existing game
+        const { data, error: rpcError } = await supabase.rpc('join_game_session', {
+          p_game_id: gameId,
+          p_display_name: displayName,
+        });
+
+        if (rpcError) {
+          // Check for game full error
+          if (rpcError.message?.includes('GAME_FULL')) {
+            throw new Error('This game is full. Please create a new game or join a different one.');
+          }
+          if (rpcError.message?.includes('GAME_STARTED')) {
+            throw new Error('This game has already started. Please create a new game or join a different one.');
+          }
+          if (rpcError.message?.includes('GAME_NOT_FOUND')) {
+            throw new Error('Game not found. Please check the game ID and try again.');
+          }
+          throw rpcError;
+        }
+
+        router.push(`/game/${gameId}`);
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      setIsLoading(false);
+      setShowNamePrompt(false);
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">
+      <Card className="max-w-2xl w-full p-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-5xl font-bold mb-3">🎲 Aggravation</h1>
+          <p className="text-xl text-gray-600 mb-2">
+            The Classic Board Game - Online Multiplayer
+          </p>
+          <p className="text-gray-500">
+            Race your marbles home, capture opponents, and use shortcuts to victory!
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* How to Play */}
+        <div className="bg-blue-50 rounded-lg p-4 mb-6">
+          <h2 className="font-semibold mb-2">How to Play:</h2>
+          <ul className="text-sm text-gray-700 space-y-1">
+            <li>• Roll the dice and move your marbles around the board</li>
+            <li>• Get all 4 marbles to your home zone to win</li>
+            <li>• Land on opponents to send them back to start</li>
+            <li>• Take shortcuts after completing one lap</li>
+            <li>• Play with 2-4 players</li>
+          </ul>
         </div>
-      </main>
+
+        {/* Actions */}
+        <div className="space-y-4">
+          {/* Create Game */}
+          <div>
+            <Button
+              onClick={handleCreateGame}
+              size="lg"
+              className="w-full text-lg h-14"
+              disabled={isLoading}
+            >
+              Create New Game
+            </Button>
+          </div>
+
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">or</span>
+            </div>
+          </div>
+
+          {/* Join Game */}
+          <div className="space-y-2">
+            <Input
+              type="text"
+              placeholder="Enter Game ID"
+              value={gameId}
+              onChange={(e) => {
+                setGameId(e.target.value);
+                setError('');
+              }}
+              disabled={isLoading}
+              className="text-center font-mono"
+            />
+            <Button
+              onClick={handleJoinGame}
+              size="lg"
+              variant="outline"
+              className="w-full text-lg h-14"
+              disabled={isLoading || !gameId.trim()}
+            >
+              Join Game
+            </Button>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-red-800 text-sm">{error}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="mt-8 text-center text-sm text-gray-500">
+          <p>No account needed • Guest mode • Free to play</p>
+        </div>
+      </Card>
+
+      {/* Name prompt modal */}
+      {showNamePrompt && (
+        <GuestNamePrompt
+          onSubmit={handleNameSubmit}
+          isLoading={isLoading}
+        />
+      )}
     </div>
   );
 }
+

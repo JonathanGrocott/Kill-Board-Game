@@ -140,17 +140,17 @@
 
 ### Lobby Page
 
-- [ ] T065 [US2] Create game lobby page in app/game/[id]/page.tsx: shows PlayerList, ShareLink, "Start Game" button (host only), waits for 4 players per spec.md
-- [ ] T066 [US2] Subscribe to lobby:{gameId} Realtime channel in app/game/[id]/page.tsx: listen for player JOIN events, update PlayerList live per contracts/realtime-channels.md
-- [ ] T067 [US2] Implement auto-start logic in app/game/[id]/page.tsx: detect when game.status changes to 'active', navigate to /game/[id]/play per spec.md acceptance scenario 2.4
-- [ ] T068 [US2] Show "Game Full" message in app/game/[id]/page.tsx: when trying to join and player_count = num_players per spec.md acceptance scenario 2.5
-- [ ] T069 [US2] Implement shareable link generation in app/game/[id]/page.tsx: use window.location.href, show copy button per spec.md FR-012
+- [X] T065 [US2] Create game lobby page in app/game/[id]/page.tsx: shows PlayerList, ShareLink, "Start Game" button (host only), waits for 4 players per spec.md
+- [X] T066 [US2] Subscribe to lobby:{gameId} Realtime channel in app/game/[id]/page.tsx: listen for player JOIN events, update PlayerList live per contracts/realtime-channels.md
+- [X] T067 [US2] Implement auto-start logic in app/game/[id]/page.tsx: detect when game.status changes to 'active', navigate to /game/[id]/play per spec.md acceptance scenario 2.4
+- [X] T068 [US2] Show "Game Full" message in app/game/[id]/page.tsx: when trying to join and player_count = num_players per spec.md acceptance scenario 2.5
+- [X] T069 [US2] Implement shareable link generation in app/game/[id]/page.tsx: use window.location.href, show copy button per spec.md FR-012
 
 ### Guest Authentication
 
-- [ ] T070 [US2] Implement guest sign-in in lib/auth/guest.ts: call supabase.auth.signInAnonymously with display_name in metadata per research.md
-- [ ] T071 [US2] Create useAuth hook in hooks/useAuth.ts: manages auth state, provides signInAsGuest and signOut functions per plan.md
-- [ ] T072 [US2] Add auth state check to app/page.tsx: if not authenticated, show GuestNamePrompt before allowing game creation/join per spec.md FR-019
+- [X] T070 [US2] Implement guest sign-in in lib/auth/guest.ts: call supabase.auth.signInAnonymously with display_name in metadata per research.md
+- [X] T071 [US2] Create useAuth hook in hooks/useAuth.ts: manages auth state, provides signInAsGuest and signOut functions per plan.md
+- [X] T072 [US2] Add auth state check to app/page.tsx: if not authenticated, show GuestNamePrompt before allowing game creation/join per spec.md FR-019
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work - users can create/join games quickly and play
 
