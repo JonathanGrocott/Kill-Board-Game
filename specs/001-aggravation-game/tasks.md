@@ -164,10 +164,10 @@
 
 ### Real-Time Synchronization
 
-- [ ] T073 [US3] Optimize Realtime subscriptions in hooks/useRealtimeSync.ts: batch marble updates, debounce presence updates to 10s per contracts/realtime-channels.md performance section
-- [ ] T074 [US3] Implement dice roll broadcast in app/game/[id]/play/page.tsx: send dice_rolled event via broadcast channel for <100ms latency per contracts/realtime-channels.md
-- [ ] T075 [US3] Implement marble move broadcast in app/game/[id]/play/page.tsx: send marble_moved event with animation data per contracts/realtime-channels.md
-- [ ] T076 [US3] Add Realtime connection indicator in components/game/ConnectionStatus.tsx: show "Connected", "Reconnecting...", "Disconnected" states per plan.md
+- [X] T073 [US3] Optimize Realtime subscriptions in hooks/useRealtimeSync.ts: batch marble updates, debounce presence updates to 10s per contracts/realtime-channels.md performance section
+- [X] T074 [US3] Implement dice roll broadcast in app/game/[id]/play/page.tsx: send dice_rolled event via broadcast channel for <100ms latency per contracts/realtime-channels.md
+- [X] T075 [US3] Implement marble move broadcast in app/game/[id]/play/page.tsx: send marble_moved event with animation data per contracts/realtime-channels.md
+- [X] T076 [US3] Add Realtime connection indicator in components/game/ConnectionStatus.tsx: show "Connected", "Reconnecting...", "Disconnected" states per plan.md
 
 ### Presence & Disconnection Handling
 

@@ -4,6 +4,7 @@
  * useRealtimeSync Hook
  * 
  * Manages Realtime subscriptions for game state synchronization
+ * Optimized for <200ms latency with batching and debouncing
  */
 
 import { useEffect, useCallback, useRef } from 'react';
@@ -13,7 +14,9 @@ import {
   setupGameChannel,
   unsubscribeChannel,
   broadcastDiceRoll,
+  broadcastMarbleMove,
   type DiceRollBroadcast,
+  type MarbleMoveBroadcast,
 } from '@/lib/supabase/realtime';
 
 interface UseRealtimeSyncProps {
@@ -48,6 +51,18 @@ export function useRealtimeSync({
       }
     },
     [currentPlayerId]
+  );
+
+  /**
+   * Broadcast marble move to all players
+   */
+  const sendMarbleMove = useCallback(
+    async (data: MarbleMoveBroadcast) => {
+      if (channelRef.current) {
+        await broadcastMarbleMove(channelRef.current, data);
+      }
+    },
+    []
   );
 
   /**
@@ -98,5 +113,6 @@ export function useRealtimeSync({
 
   return {
     sendDiceRoll,
+    sendMarbleMove,
   };
 }

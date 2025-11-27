@@ -46,7 +46,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
   const [validMarbleIds, setValidMarbleIds] = useState<string[]>([]);
 
   // Setup Realtime sync
-  const { sendDiceRoll } = useRealtimeSync({
+  const { sendDiceRoll, sendMarbleMove } = useRealtimeSync({
     gameId,
     currentPlayerId,
     onGameUpdate: (game) => {
@@ -142,8 +142,31 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
   // Handle marble move
   const handleMarbleMove = useCallback(
     async (marbleId: string) => {
+      if (!gameState) return;
+      
+      const marble = gameState.marbles.find(m => m.id === marbleId);
+      if (!marble) return;
+
+      // Store old position for broadcast
+      const oldPosition = {
+        type: marble.position_type,
+        index: marble.position_index,
+      };
+
       const result = await moveMarble(marbleId);
       if (result) {
+        // Broadcast marble move
+        await sendMarbleMove({
+          marbleId,
+          playerId: currentPlayerId,
+          fromPosition: oldPosition,
+          toPosition: {
+            type: result.new_position_type,
+            index: result.new_position_index,
+          },
+          capturedMarbleId: result.captured_marble_id || undefined,
+        });
+
         // Clear valid marbles
         setValidMarbleIds([]);
         
@@ -153,7 +176,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
         }
       }
     },
-    [moveMarble]
+    [moveMarble, sendMarbleMove, gameState, currentPlayerId]
   );
 
   // Handle marble selection
