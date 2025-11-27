@@ -10,8 +10,8 @@
  * - Click and drag interactions
  */
 
-import React, { memo, useState, useRef } from 'react';
-import { motion, PanInfo, useAnimation } from 'framer-motion';
+import React, { memo, useState } from 'react';
+import { motion, PanInfo } from 'framer-motion';
 import type { Marble as MarbleType, PlayerColor } from '@/types/game';
 import { getMarbleCoordinates } from '@/lib/game/board';
 
@@ -34,8 +34,6 @@ function MarbleComponent({ marble, playerColor, isSelected, isValid, onClick, on
   );
 
   const [isDragging, setIsDragging] = useState(false);
-  const controls = useAnimation();
-  const startPosRef = useRef({ x: 0, y: 0 });
 
   // Touch-friendly hit area (44x44px minimum)
   const touchRadius = 22; // 44px diameter
@@ -43,22 +41,19 @@ function MarbleComponent({ marble, playerColor, isSelected, isValid, onClick, on
   const handleDragStart = () => {
     if (!isDraggable || !isValid) return;
     setIsDragging(true);
-    startPosRef.current = { x: coords.x, y: coords.y };
   };
 
   const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    setIsDragging(false);
+    
     if (!isDraggable || !isValid) {
-      // Snap back to original position
-      controls.start({ x: coords.x, y: coords.y });
-      setIsDragging(false);
+      // Component will animate back to original position via the animate prop
       return;
     }
 
     // Calculate the end position in SVG coordinates
     const endX = coords.x + info.offset.x;
     const endY = coords.y + info.offset.y;
-    
-    setIsDragging(false);
     
     // Notify parent of drag end with the end position
     if (onDragEnd) {
@@ -74,11 +69,9 @@ function MarbleComponent({ marble, playerColor, isSelected, isValid, onClick, on
 
   return (
     <motion.g
-      initial={false}
-      animate={controls}
+      initial={{ x: coords.x, y: coords.y }}
+      animate={{ x: coords.x, y: coords.y }}
       style={{
-        x: coords.x,
-        y: coords.y,
         cursor: isDraggable && isValid ? 'grab' : onClick ? 'pointer' : 'default',
       }}
       drag={isDraggable && isValid}
@@ -93,7 +86,7 @@ function MarbleComponent({ marble, playerColor, isSelected, isValid, onClick, on
           onClick();
         }
       }}
-      whileDrag={{ scale: 1.2, zIndex: 100 }}
+      whileDrag={{ scale: 1.2 }}
       transition={{
         type: 'spring',
         stiffness: 260,
