@@ -5,6 +5,12 @@
 **Status**: Draft  
 **Input**: User description: "Fast, simple, multiplayer online version of the classic Aggravation marble-and-dice board game. The experience should work in any modern browser and on mobile phones with no installation. The codebase must use only open-source technologies, deploy easily to Vercel, and use Supabase for database, auth, and real-time multiplayer. The game should look modern and setup for 4 players."
 
+## Board Layout Reference
+
+![Aggravation Board Layout](./Kill-Board.jpg)
+
+*Reference image showing the classic 4-player Aggravation board layout with starting zones, main track, shortcuts, and home zones.*
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Play Complete Game (Priority: P1)
