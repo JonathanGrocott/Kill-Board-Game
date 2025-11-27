@@ -32,11 +32,16 @@ BEGIN
   ORDER BY p.position_order;
   
   -- Get marbles data
-  SELECT json_agg(row_to_json(m.*)) INTO v_marbles_data
-  FROM marbles m
-  JOIN players p ON m.player_id = p.id
-  WHERE p.game_session_id = p_game_id
-  ORDER BY p.position_order, m.marble_number;
+  SELECT json_agg(marble_json ORDER BY position_order, marble_number) INTO v_marbles_data
+  FROM (
+    SELECT 
+      row_to_json(m.*) as marble_json,
+      p.position_order,
+      m.marble_number
+    FROM marbles m
+    JOIN players p ON m.player_id = p.id
+    WHERE p.game_session_id = p_game_id
+  ) subquery;
   
   RETURN json_build_object(
     'game', v_game_data,

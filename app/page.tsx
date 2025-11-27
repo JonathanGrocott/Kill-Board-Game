@@ -106,12 +106,23 @@ export default function HomePage() {
           p_enable_shortcuts: true,
         });
 
-        if (rpcError) throw rpcError;
-
-        if (data) {
-          const gameData = data as unknown as { game_id: string };
-          router.push(`/game/${gameData.game_id}`);
+        if (rpcError) {
+          console.error('RPC Error:', rpcError);
+          throw rpcError;
         }
+
+        if (!data) {
+          throw new Error('Failed to create game: No data returned from server');
+        }
+
+        console.log('Game created:', data);
+        const gameData = data as unknown as { game_id: string };
+        
+        if (!gameData.game_id) {
+          throw new Error('Failed to create game: Invalid response format');
+        }
+        
+        router.push(`/game/${gameData.game_id}`);
       } else {
         // Join existing game
         const { data, error: rpcError } = await supabase.rpc('join_game_session', {
@@ -170,7 +181,7 @@ export default function HomePage() {
       <Card className="max-w-2xl w-full p-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold mb-3">🎲 Aggravation</h1>
+          <h1 className="text-5xl font-bold mb-3">🎲 Kill</h1>
           <p className="text-xl text-gray-600 mb-2">
             The Classic Board Game - Online Multiplayer
           </p>

@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Aggravation - Online Multiplayer Board Game",
-  description: "Play the classic Aggravation board game online with friends. Real-time multiplayer, mobile-friendly, no account required.",
+  title: "Kill - Online Multiplayer Board Game",
+  description: "Play the classic Kill board game online with friends. Real-time multiplayer, mobile-friendly, no account required.",
   viewport: {
     width: 'device-width',
     initialScale: 1,

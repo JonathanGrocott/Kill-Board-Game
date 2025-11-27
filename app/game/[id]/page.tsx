@@ -42,17 +42,23 @@ export default function GameLobbyPage({ params }: GameLobbyPageProps) {
 
       if (rpcError) throw rpcError;
 
+      if (!data) {
+        throw new Error('Game not found');
+      }
+
       if (data && typeof data === 'object' && data !== null) {
-        const gameData = data as unknown as { game: Game; players: Player[] };
-        setGame(gameData.game);
-        setPlayers(gameData.players);
+        // The RPC returns the game data directly with nested players array
+        const gameData = data as any;
+        const { players: playersData, ...gameInfo } = gameData;
+        setGame(gameInfo as Game);
+        setPlayers((playersData || []) as Player[]);
       }
     } catch (err) {
       console.error('Failed to load game:', err);
       console.error('Error details:', JSON.stringify(err, null, 2));
       
       // Provide more specific error messages
-      const errorObj = err as any;
+      const errorObj = err as { code?: string; message?: string };
       if (errorObj?.code === 'PGRST116') {
         setError('Game not found. The game may have expired or the ID is incorrect.');
       } else if (errorObj?.message) {
