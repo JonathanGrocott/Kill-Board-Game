@@ -6,7 +6,10 @@ DROP FUNCTION IF EXISTS get_game_state(UUID);
 
 -- Recreate with fixed query
 CREATE OR REPLACE FUNCTION get_game_state(p_game_id UUID)
-RETURNS JSON AS $$
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
 DECLARE
   v_result JSON;
 BEGIN
@@ -52,4 +55,4 @@ BEGIN
 
   RETURN v_result;
 END;
-$$ LANGUAGE plpgsql;
+$$;
