@@ -39,10 +39,10 @@ BEGIN
   VALUES (v_game_id, v_user_id, p_display_name, 'red', 1, false)
   RETURNING id INTO v_player_id;
   
-  -- Create 4 marbles for player
+  -- Create 5 marbles for player
   INSERT INTO marbles (player_id, marble_number, position_type)
   SELECT v_player_id, n, 'base'
-  FROM generate_series(1, 4) AS n;
+  FROM generate_series(1, 5) AS n;
   
   RETURN json_build_object(
     'game_id', v_game_id,
@@ -106,10 +106,10 @@ BEGIN
   VALUES (p_game_id, v_user_id, p_display_name, v_next_color, v_next_position, false)
   RETURNING id INTO v_player_id;
   
-  -- Create 4 marbles
+  -- Create 5 marbles
   INSERT INTO marbles (player_id, marble_number, position_type)
   SELECT v_player_id, n, 'base'
-  FROM generate_series(1, 4) AS n;
+  FROM generate_series(1, 5) AS n;
   
   -- If game is full, start it
   IF v_next_position = v_game.num_players THEN
@@ -178,10 +178,10 @@ BEGIN
   VALUES (p_game_id, NULL, 'Bot ' || v_bot_number, v_next_color, v_next_position, true)
   RETURNING id INTO v_player_id;
   
-  -- Create 4 marbles
+  -- Create 5 marbles
   INSERT INTO marbles (player_id, marble_number, position_type)
   SELECT v_player_id, n, 'base'
-  FROM generate_series(1, 4) AS n;
+  FROM generate_series(1, 5) AS n;
   
   -- If game is full, start it
   IF v_next_position = v_game.num_players THEN

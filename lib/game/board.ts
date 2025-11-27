@@ -17,8 +17,8 @@
 import type { PlayerColor, PositionType } from '@/types/game';
 
 export const TRACK_LENGTH = 68;
-export const MARBLES_PER_PLAYER = 4;
-export const HOME_SPACES = 4;
+export const MARBLES_PER_PLAYER = 5;
+export const HOME_SPACES = 5;
 
 /**
  * Track starting positions for each player color
@@ -85,44 +85,135 @@ export function getMarbleCoordinates(
 
 /**
  * Get base coordinates for a marble in starting position
+ * 6 spots available per base (for 5 marbles)
  */
 function getBaseCoordinates(color: PlayerColor, marbleNumber: number): BoardCoordinates {
-  const baseOffsets: Record<PlayerColor, { x: number; y: number }> = {
-    red: { x: 100, y: 700 },    // Bottom-left corner
-    blue: { x: 700, y: 700 },   // Bottom-right corner
-    green: { x: 700, y: 100 },  // Top-right corner
-    yellow: { x: 100, y: 100 }, // Top-left corner
+  // Base positions matching the new cross-shaped board
+  const basePositions: Record<PlayerColor, Array<{ x: number; y: number }>> = {
+    red: [
+      { x: 70, y: 480 },
+      { x: 90, y: 500 },
+      { x: 90, y: 530 },
+      { x: 60, y: 530 },
+      { x: 50, y: 500 },
+      { x: 60, y: 470 },
+    ],
+    blue: [
+      { x: 570, y: 490 },
+      { x: 590, y: 510 },
+      { x: 590, y: 540 },
+      { x: 560, y: 540 },
+      { x: 550, y: 510 },
+      { x: 560, y: 480 },
+    ],
+    green: [
+      { x: 560, y: 10 },
+      { x: 580, y: 30 },
+      { x: 580, y: 60 },
+      { x: 550, y: 60 },
+      { x: 540, y: 30 },
+      { x: 550, y: 0 },
+    ],
+    yellow: [
+      { x: 80, y: 20 },
+      { x: 100, y: 40 },
+      { x: 100, y: 70 },
+      { x: 70, y: 70 },
+      { x: 60, y: 40 },
+      { x: 70, y: 10 },
+    ],
   };
 
-  const offset = baseOffsets[color];
-  const spacing = 30;
+  const positions = basePositions[color];
+  const index = Math.min(marbleNumber - 1, positions.length - 1);
 
-  // Arrange 4 marbles in 2x2 grid
-  const row = Math.floor((marbleNumber - 1) / 2);
-  const col = (marbleNumber - 1) % 2;
-
-  return {
-    x: offset.x + col * spacing,
-    y: offset.y + row * spacing,
-  };
+  return positions[index];
 }
 
 /**
- * Get track coordinates for main circular track positions
- * Track is a circular path with 68 positions
+ * Get track coordinates for a specific position index (0-67)
+ * Generates a perfectly symmetrical cross-shaped track path
+ * Dimensions: 7 spaces on side, 6 spaces on end
  */
-function getTrackCoordinates(positionIndex: number): BoardCoordinates {
-  const centerX = 400;
-  const centerY = 400;
-  const radius = 280;
+export function getTrackCoordinates(positionIndex: number): BoardCoordinates {
+  const CENTER = 300;
+  const STEP = 35;
+  const points: BoardCoordinates[] = [];
 
-  // Convert position to angle (clockwise from top)
-  const angle = (positionIndex / TRACK_LENGTH) * 2 * Math.PI - Math.PI / 2;
-
-  return {
-    x: centerX + radius * Math.cos(angle),
-    y: centerY + radius * Math.sin(angle),
+  // Helper to add point
+  // Uses half-steps for perfect symmetry around center
+  const p = (x: number, y: number) => {
+    points.push({ x: CENTER + x * STEP, y: CENTER + y * STEP });
   };
+
+  // Dimensions (in steps from center)
+  // Width = 6 circles -> +/- 2.5 steps
+  // Side Length = 7 circles -> 6 steps
+  // Tip = 2.5 + 6 = 8.5 steps
+  const INNER = 2.5;
+  const TIP = 8.5;
+
+  // Generate 68 points clockwise starting from Red Start (Bottom-Left Tip)
+  // Index 0: (-2.5, 8.5)
+  
+  // 1. Bottom Arm, Left Edge (Up): (-2.5, 8.5) -> (-2.5, 2.5)
+  // 7 circles
+  for (let y = TIP; y >= INNER; y--) p(-INNER, y);
+
+  // 2. Left Arm, Bottom Edge (Left): (-3.5, 2.5) -> (-8.5, 2.5)
+  // 6 circles (Inner corner shared with prev)
+  for (let x = -INNER - 1; x >= -TIP; x--) p(x, INNER);
+
+  // 3. Left Arm, End (Up): (-8.5, 1.5) -> (-8.5, -2.5)
+  // 5 circles (Corner shared)
+  for (let y = INNER - 1; y >= -INNER; y--) p(-TIP, y);
+
+  // 4. Left Arm, Top Edge (Right): (-8.5, -2.5) -> (-2.5, -2.5)
+  // 6 circles (Corner shared) -> Wait, (-8.5, -2.5) is corner.
+  // Start from (-7.5, -2.5)
+  for (let x = -TIP + 1; x <= -INNER; x++) p(x, -INNER);
+
+  // 5. Top Arm, Left Edge (Up): (-2.5, -3.5) -> (-2.5, -8.5)
+  // 6 circles (Inner shared)
+  for (let y = -INNER - 1; y >= -TIP; y--) p(-INNER, y);
+
+  // 6. Top Arm, End (Right): (-1.5, -8.5) -> (2.5, -8.5)
+  // 5 circles
+  for (let x = -INNER + 1; x <= INNER; x++) p(x, -TIP);
+
+  // 7. Top Arm, Right Edge (Down): (2.5, -8.5) -> (2.5, -2.5)
+  // 6 circles (Corner shared) -> Start (2.5, -7.5)
+  // Wait, (2.5, -8.5) is corner.
+  // Start (2.5, -7.5) -> (2.5, -2.5)
+  for (let y = -TIP + 1; y <= -INNER; y++) p(INNER, y);
+
+  // 8. Right Arm, Top Edge (Right): (3.5, -2.5) -> (8.5, -2.5)
+  // 6 circles (Inner shared)
+  for (let x = INNER + 1; x <= TIP; x++) p(x, -INNER);
+
+  // 9. Right Arm, End (Down): (8.5, -1.5) -> (8.5, 2.5)
+  // 5 circles
+  for (let y = -INNER + 1; y <= INNER; y++) p(TIP, y);
+
+  // 10. Right Arm, Bottom Edge (Left): (7.5, 2.5) -> (2.5, 2.5)
+  // 6 circles
+  for (let x = TIP - 1; x >= INNER; x--) p(x, INNER);
+
+  // 11. Bottom Arm, Right Edge (Down): (2.5, 3.5) -> (2.5, 8.5)
+  // 6 circles (Inner shared)
+  for (let y = INNER + 1; y <= TIP; y++) p(INNER, y);
+
+  // 12. Bottom Arm, End (Left): (1.5, 8.5) -> (-1.5, 8.5)
+  // 4 circles? Wait.
+  // End has 6 circles.
+  // (-2.5, 8.5) is Start (Index 0).
+  // (2.5, 8.5) is Corner.
+  // Between them: (-1.5, 8.5), (-0.5, 8.5), (0.5, 8.5), (1.5, 8.5).
+  // 4 circles.
+  // Loop should be from 1.5 down to -1.5.
+  for (let x = INNER - 1; x >= -INNER + 1; x--) p(x, TIP);
+
+  return points[positionIndex % 68];
 }
 
 /**
@@ -151,26 +242,46 @@ function getShortcutCoordinates(color: PlayerColor, positionIndex: number): Boar
 }
 
 /**
- * Get home zone coordinates for final 4 spaces
+ * Get home zone coordinates for final 5 spaces
+ * Each player has a path pointing toward center
  */
 function getHomeCoordinates(color: PlayerColor, positionIndex: number): BoardCoordinates {
-  const centerX = 400;
-  const centerY = 400;
-
-  const angles: Record<PlayerColor, number> = {
-    red: -Math.PI / 2,
-    blue: 0,
-    green: Math.PI / 2,
-    yellow: Math.PI,
+  // Home positions - 5 spaces per player
+  const homePositions: Record<PlayerColor, Array<{ x: number; y: number }>> = {
+    red: [
+      { x: 325, y: 480 },
+      { x: 325, y: 450 },
+      { x: 325, y: 420 },
+      { x: 325, y: 390 },
+      { x: 325, y: 360 },
+    ],
+    blue: [
+      { x: 425, y: 350 },
+      { x: 450, y: 350 },
+      { x: 480, y: 350 },
+      { x: 510, y: 350 },
+      { x: 540, y: 350 },
+    ],
+    green: [
+      { x: 320, y: 30 },
+      { x: 320, y: 60 },
+      { x: 320, y: 90 },
+      { x: 320, y: 120 },
+      { x: 320, y: 150 },
+    ],
+    yellow: [
+      { x: 60, y: 190 },
+      { x: 90, y: 190 },
+      { x: 120, y: 190 },
+      { x: 150, y: 190 },
+      { x: 180, y: 190 },
+    ],
   };
 
-  const angle = angles[color];
-  const distance = 120 + (positionIndex * 20); // Closer to center
+  const positions = homePositions[color];
+  const index = Math.min(positionIndex, positions.length - 1);
 
-  return {
-    x: centerX + distance * Math.cos(angle),
-    y: centerY + distance * Math.sin(angle),
-  };
+  return positions[index];
 }
 
 /**
@@ -263,11 +374,11 @@ export function calculateNewPosition(
     };
   }
 
-  // Moving in home - must land exactly on final space (index 3)
+  // Moving in home - must land exactly on final space (index 4)
   if (currentPositionType === 'home' && currentPositionIndex !== null) {
     const newPosition = currentPositionIndex + diceRoll;
     
-    if (newPosition < HOME_SPACES) {
+    if (newPosition < 5) {  // Changed from 4 to 5 (HOME_SPACES)
       return {
         positionType: 'home',
         positionIndex: newPosition,

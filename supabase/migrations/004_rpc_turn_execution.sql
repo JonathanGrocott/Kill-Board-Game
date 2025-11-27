@@ -172,8 +172,8 @@ BEGIN
     ELSE
       -- Entering home zone
       v_new_position_index := v_new_position_index - 6;
-      IF v_new_position_index >= 4 THEN
-        RAISE EXCEPTION 'INVALID_MOVE: Overshoot home (shortcut + % = home %, max 3)', v_dice_roll, v_new_position_index;
+      IF v_new_position_index >= 5 THEN
+        RAISE EXCEPTION 'INVALID_MOVE: Overshoot home (shortcut + % = home %, max 4)', v_dice_roll, v_new_position_index;
       END IF;
       v_new_position_type := 'home';
     END IF;
@@ -182,8 +182,8 @@ BEGIN
     -- Move forward in home zone (must land exactly on final space)
     v_new_position_index := v_marble.position_index + v_dice_roll;
     
-    IF v_new_position_index >= 4 THEN
-      RAISE EXCEPTION 'INVALID_MOVE: Overshoot home (home % + % = %, max 3)', v_marble.position_index, v_dice_roll, v_new_position_index;
+    IF v_new_position_index >= 5 THEN
+      RAISE EXCEPTION 'INVALID_MOVE: Overshoot home (home % + % = %, max 4)', v_marble.position_index, v_dice_roll, v_new_position_index;
     END IF;
     v_new_position_type := 'home';
     
@@ -220,12 +220,12 @@ BEGIN
   END IF;
   
   -- Update marbles_home count if reached home
-  IF v_new_position_type = 'home' AND v_new_position_index = 3 THEN
+  IF v_new_position_type = 'home' AND v_new_position_index = 4 THEN
     UPDATE players SET marbles_home = marbles_home + 1 WHERE id = v_player.id;
     
     -- Check win condition
     SELECT marbles_home INTO v_marbles_at_home FROM players WHERE id = v_player.id;
-    IF v_marbles_at_home = 4 THEN
+    IF v_marbles_at_home = 5 THEN
       v_player_won := true;
       UPDATE game_sessions SET
         status = 'completed',

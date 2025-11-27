@@ -19,10 +19,11 @@ interface MarbleProps {
   marble: MarbleType;
   playerColor: PlayerColor;
   isSelected?: boolean;
+  isValid?: boolean;
   onClick?: () => void;
 }
 
-function MarbleComponent({ marble, playerColor, isSelected, onClick }: MarbleProps) {
+function MarbleComponent({ marble, playerColor, isSelected, isValid, onClick }: MarbleProps) {
   const coords = getMarbleCoordinates(
     marble.position_type,
     marble.position_index,
@@ -114,6 +115,22 @@ function MarbleComponent({ marble, playerColor, isSelected, onClick }: MarblePro
           pointerEvents="none"
         />
       )}
+
+      {/* Valid move indicator (pulse) */}
+      {isValid && !isSelected && (
+        <motion.circle
+          cx={0}
+          cy={0}
+          r={16}
+          fill="none"
+          stroke="white"
+          strokeWidth={2}
+          initial={{ opacity: 0.5, scale: 1 }}
+          animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.1, 1] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          pointerEvents="none"
+        />
+      )}
     </motion.g>
   );
 }
@@ -125,6 +142,7 @@ export const Marble = memo(MarbleComponent, (prevProps, nextProps) => {
     prevProps.marble.position_type === nextProps.marble.position_type &&
     prevProps.marble.position_index === nextProps.marble.position_index &&
     prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isValid === nextProps.isValid &&
     prevProps.playerColor === nextProps.playerColor
   );
 });

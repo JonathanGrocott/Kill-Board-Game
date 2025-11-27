@@ -97,6 +97,12 @@ export function getValidMarbles(
       hasCompletedLap
     );
 
+    if (!validation.isValid) {
+      console.log(`[Validation] Marble ${marble.id} (${marble.position_type}) invalid: ${validation.reason}`);
+    } else {
+      console.log(`[Validation] Marble ${marble.id} (${marble.position_type}) VALID`);
+    }
+
     return validation.isValid;
   });
 }

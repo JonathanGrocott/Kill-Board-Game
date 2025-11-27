@@ -39,6 +39,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
     refreshGameState,
     rollDice,
     moveMarble,
+    passTurn,
     selectMarble,
     setGameState,
   } = useGameState(gameId);
@@ -111,31 +112,46 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
     getCurrentPlayer();
   }, [gameState]);
 
-  // Bot turn detection and execution
+  // Bot turn automation
   useEffect(() => {
-    if (!gameState?.game || gameState.game.status !== 'active') return;
+    if (!gameState?.game) {
+      console.log('[Bot Check] No game state yet');
+      return;
+    }
 
     const currentTurnPlayer = gameState.players.find(
       p => p.id === gameState.game.current_turn_player_id
     );
 
+    console.log('[Bot Check] Current turn player:', {
+      playerId: currentTurnPlayer?.id,
+      displayName: currentTurnPlayer?.display_name,
+      isBot: currentTurnPlayer?.is_bot,
+      isBotThinking,
+      currentDiceRoll: gameState.game.current_dice_roll
+    });
+
     // Check if it's a bot's turn
     if (currentTurnPlayer?.is_bot && !isBotThinking) {
+      console.log('[Bot] Bot turn detected, executing in 2 seconds...');
       setIsBotThinking(true);
 
       // Add delay for natural feel (2 seconds)
       const botTimer = setTimeout(async () => {
         try {
+          console.log('[Bot] Executing bot turn for player:', currentTurnPlayer.id);
           // Execute bot turn via RPC
-          const { error: botError } = await supabase.rpc('execute_bot_turn', {
+          const { data, error: botError } = await supabase.rpc('execute_bot_turn', {
             p_game_id: gameId,
           });
 
           if (botError) {
-            console.error('Bot turn failed:', botError);
+            console.error('[Bot] Bot turn failed:', botError);
+          } else {
+            console.log('[Bot] Bot turn completed:', data);
           }
         } catch (err) {
-          console.error('Failed to execute bot turn:', err);
+          console.error('[Bot] Failed to execute bot turn:', err);
         } finally {
           setIsBotThinking(false);
         }
@@ -147,11 +163,13 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
     } else if (!currentTurnPlayer?.is_bot) {
       setIsBotThinking(false);
     }
-  }, [gameState, gameId, isBotThinking]);
+  }, [gameState?.game, gameState?.players, gameId, isBotThinking]);
 
   // Handle dice roll
-  const handleRollDice = useCallback(async () => {
-    if (!gameState?.game || !currentPlayerId) return;
+  const handleDiceRoll = useCallback(async () => {
+    if (!gameState?.game || !currentPlayerId) {
+      return;
+    }
 
     // Check if player can roll
     if (!canRollDice(gameState.game, currentPlayerId)) {
@@ -163,6 +181,15 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
     setIsRolling(false);
 
     if (result) {
+      // Update local game state with dice value immediately so it displays
+      setGameState({
+        ...gameState,
+        game: {
+          ...gameState.game,
+          current_dice_roll: result.dice_value,
+        },
+      });
+
       // Broadcast dice roll
       await sendDiceRoll(result.dice_value);
 
@@ -179,16 +206,22 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
         // Auto-select if only one valid marble
         if (validMarbles.length === 1) {
           selectMarble(validMarbles[0].id);
+        } else if (validMarbles.length === 0) {
+          // No valid moves - auto pass turn
+          console.log('No valid moves, passing turn...');
+          setTimeout(async () => {
+            await passTurn();
+          }, 1500); // Small delay so user sees the dice roll
         }
       }
     }
-  }, [gameState, currentPlayerId, rollDice, sendDiceRoll, selectMarble]);
+  }, [gameState, currentPlayerId, rollDice, sendDiceRoll, selectMarble, setGameState, passTurn]);
 
   // Handle marble move
   const handleMarbleMove = useCallback(
     async (marbleId: string) => {
       if (!gameState?.marbles) return;
-      
+
       const marble = gameState.marbles.find(m => m.id === marbleId);
       if (!marble) return;
 
@@ -214,7 +247,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
 
         // Clear valid marbles
         setValidMarbleIds([]);
-        
+
         // Check if game is won
         if (result.player_won) {
           console.log('Game won!');
@@ -227,23 +260,34 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
   // Handle marble selection
   const handleMarbleClick = useCallback(
     (marble: Marble) => {
-      if (!gameState?.game || !currentPlayerId) return;
+      console.log('[Click] Marble clicked:', marble.id, marble.position_type);
+
+      if (!gameState?.game || !currentPlayerId) {
+        console.log('[Click] No game or player ID');
+        return;
+      }
 
       // Check if it's player's turn and dice is rolled
       if (!canMoveMarbleRule(gameState.game, currentPlayerId)) {
+        console.log('[Click] Cannot move rule failed');
         return;
       }
 
       // Check if marble is valid for current dice roll
       if (!validMarbleIds.includes(marble.id)) {
+        console.log('[Click] Marble not in valid list:', validMarbleIds);
         return;
       }
 
+      console.log('[Click] Marble valid, proceeding to move/select');
+
       // If marble already selected, move it
       if (selectedMarbleId === marble.id && gameState.game.current_dice_roll) {
+        console.log('[Click] Executing move...');
         handleMarbleMove(marble.id);
       } else {
         // Select marble
+        console.log('[Click] Selecting marble...');
         selectMarble(marble.id);
       }
     },
@@ -295,6 +339,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
               players={gameState.players || []}
               onMarbleClick={handleMarbleClick}
               selectedMarbleId={selectedMarbleId}
+              validMarbleIds={validMarbleIds}
               highlightedSpaces={[]}
             />
           </div>
@@ -331,7 +376,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
               {/* Dice */}
               <Dice
                 value={gameState.game.current_dice_roll}
-                onRoll={isYourTurn ? handleRollDice : undefined}
+                onRoll={isYourTurn && !gameState.game.current_dice_roll ? handleDiceRoll : undefined}
                 disabled={!isYourTurn || isLoading || !!gameState.game.current_dice_roll}
                 isRolling={isRolling}
               />
