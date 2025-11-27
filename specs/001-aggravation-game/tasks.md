@@ -204,13 +204,13 @@
 
 - [X] T089 [US4] Create mobile layout in app/game/[id]/play/page.tsx: board fills screen height, controls at bottom, landscape support per spec.md FR-036
 - [X] T090 [US4] Add orientation detection in app/game/[id]/play/page.tsx: adjust board size for portrait vs landscape, CSS media queries per research.md
-- [ ] T091 [US4] Optimize PlayerList for mobile in components/lobby/PlayerList.tsx: horizontal scroll or compact vertical layout per spec.md FR-034
-- [ ] T092 [US4] Make VictoryScreen mobile-friendly in components/game/VictoryScreen.tsx: fullscreen modal, large text, easy-to-tap buttons per spec.md
+- [X] T091 [US4] Optimize PlayerList for mobile in components/lobby/PlayerList.tsx: horizontal scroll or compact vertical layout per spec.md FR-034
+- [X] T092 [US4] Make VictoryScreen mobile-friendly in components/game/VictoryScreen.tsx: fullscreen modal, large text, easy-to-tap buttons per spec.md
 
 ### Touch Interactions
 
-- [ ] T093 [US4] Add touch gesture support in components/game/Board.tsx: tap marble to select, tap space to move, Framer Motion drag gestures per research.md Framer Motion
-- [ ] T094 [US4] Prevent mobile browser zoom in app/globals.css: add viewport meta tag with user-scalable=no, maximum-scale=1 per spec.md FR-033
+- [X] T093 [US4] Add touch gesture support in components/game/Board.tsx: tap marble to select, tap space to move, Framer Motion drag gestures per research.md Framer Motion
+- [X] T094 [US4] Prevent mobile browser zoom in app/globals.css: add viewport meta tag with user-scalable=no, maximum-scale=1 per spec.md FR-033
 - [ ] T095 [US4] Test on mobile devices: verify no horizontal scrolling, all elements accessible, 60fps animations maintained per spec.md SC-006
 
 **Checkpoint**: Game should be fully playable on mobile with touch-only input

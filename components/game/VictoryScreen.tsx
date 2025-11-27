@@ -42,19 +42,20 @@ export function VictoryScreen({ winner, onNewGame, onBackToLobby }: VictoryScree
 
   return (
     <motion.div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
       <motion.div
+        className="w-full max-w-md"
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.2, type: 'spring' }}
       >
-        <Card className="p-8 max-w-md w-full mx-4">
+        <Card className="p-6 md:p-8 w-full">
           {/* Confetti effect */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-lg">
             {confetti.map((particle, i) => (
               <motion.div
                 key={i}
@@ -79,26 +80,28 @@ export function VictoryScreen({ winner, onNewGame, onBackToLobby }: VictoryScree
             ))}
           </div>
 
-          <div className="text-center space-y-6 relative z-10">
+          <div className="text-center space-y-4 md:space-y-6 relative z-10">
             <motion.div
               animate={{ rotate: [0, 10, -10, 0] }}
               transition={{ repeat: Infinity, duration: 2 }}
             >
-              <span className="text-6xl">🏆</span>
+              <span className="text-7xl md:text-6xl">🏆</span>
             </motion.div>
 
             <div>
-              <h2 className="text-3xl font-bold mb-2">Victory!</h2>
-              <p className="text-gray-600 text-lg">
+              <h2 className="text-4xl md:text-3xl font-bold mb-3 md:mb-2">Victory!</h2>
+              <p className="text-gray-600 text-xl md:text-lg">
                 <span
-                  className="font-bold px-3 py-1 rounded"
+                  className="font-bold px-4 py-2 md:px-3 md:py-1 rounded inline-block"
                   style={{
                     backgroundColor: `var(--color-player-${winner.color})`,
                     color: 'white',
                   }}
                 >
                   {winner.display_name}
-                </span>{' '}
+                </span>
+              </p>
+              <p className="text-gray-600 text-xl md:text-lg mt-2">
                 wins the game!
               </p>
               {winner.is_bot && (
@@ -108,9 +111,13 @@ export function VictoryScreen({ winner, onNewGame, onBackToLobby }: VictoryScree
               )}
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 pt-2">
               {onNewGame && (
-                <Button onClick={onNewGame} size="lg" className="w-full">
+                <Button
+                  onClick={onNewGame}
+                  size="lg"
+                  className="w-full min-h-[48px] text-lg touch-target"
+                >
                   New Game
                 </Button>
               )}
@@ -119,7 +126,7 @@ export function VictoryScreen({ winner, onNewGame, onBackToLobby }: VictoryScree
                   onClick={onBackToLobby}
                   variant="outline"
                   size="lg"
-                  className="w-full"
+                  className="w-full min-h-[48px] text-lg touch-target"
                 >
                   Back to Lobby
                 </Button>
