@@ -88,7 +88,18 @@ export default function HomePage() {
       }
     } catch (err) {
       console.error('Error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      
+      // Handle anonymous sign-in disabled error
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      if (errorMessage.includes('Anonymous sign-ins are disabled')) {
+        setError(
+          'Anonymous sign-in is not enabled. Please enable it in your Supabase dashboard: ' +
+          'Authentication > Providers > Email > Enable anonymous sign-ins'
+        );
+      } else {
+        setError(errorMessage);
+      }
+      
       setIsLoading(false);
       setShowNamePrompt(false);
     }

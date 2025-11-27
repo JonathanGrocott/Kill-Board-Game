@@ -225,27 +225,27 @@
 
 ### Guest Flow
 
-- [ ] T096 [US5] Enhance GuestNamePrompt in components/auth/GuestNamePrompt.tsx: show "Play as Guest" vs "Sign In" options per spec.md FR-021
-- [ ] T097 [US5] Store guest display name in Supabase Auth metadata via lib/auth/guest.ts: options.data.display_name per research.md authentication section
-- [ ] T098 [US5] Retrieve guest name from auth.users metadata in useAuth hook hooks/useAuth.ts: display in UI without database query per spec.md FR-020
+- [X] T096 [US5] Enhance GuestNamePrompt in components/auth/GuestNamePrompt.tsx: show "Play as Guest" vs "Sign In" options per spec.md FR-021
+- [X] T097 [US5] Store guest display name in Supabase Auth metadata via lib/auth/guest.ts: options.data.display_name per research.md authentication section
+- [X] T098 [US5] Retrieve guest name from auth.users metadata in useAuth hook hooks/useAuth.ts: display in UI without database query per spec.md FR-020
 
 ### Optional Sign-In
 
-- [ ] T099 [P] [US5] Install shadcn/ui Dialog component via `npx shadcn-ui@latest add dialog` for sign-in modal in components/ui/dialog.tsx
-- [ ] T100 [US5] Create SignInButton component in components/auth/SignInButton.tsx: shows "Sign In" button if guest, opens sign-in dialog per spec.md FR-021
-- [ ] T101 [US5] Implement email/password auth in lib/auth/email.ts: supabase.auth.signUp and signInWithPassword per research.md
-- [ ] T102 [P] [US5] Implement Google OAuth in lib/auth/oauth.ts: supabase.auth.signInWithOAuth({ provider: 'google' }) per research.md
-- [ ] T103 [P] [US5] Implement GitHub OAuth in lib/auth/oauth.ts: supabase.auth.signInWithOAuth({ provider: 'github' }) per research.md
+- [X] T099 [P] [US5] Install shadcn/ui Dialog component via `npx shadcn-ui@latest add dialog` for sign-in modal in components/ui/dialog.tsx
+- [X] T100 [US5] Create SignInButton component in components/auth/SignInButton.tsx: shows "Sign In" button if guest, opens sign-in dialog per spec.md FR-021
+- [X] T101 [US5] Implement email/password auth in lib/auth/email.ts: supabase.auth.signUp and signInWithPassword per research.md
+- [X] T102 [P] [US5] Implement Google OAuth in lib/auth/oauth.ts: supabase.auth.signInWithOAuth({ provider: 'google' }) per research.md
+- [X] T103 [P] [US5] Implement GitHub OAuth in lib/auth/oauth.ts: supabase.auth.signInWithOAuth({ provider: 'github' }) per research.md
 
 ### Guest-to-User Migration
 
-- [ ] T104 [US5] Implement upgrade flow in lib/auth/guest.ts: preserve display_name when guest signs in, update user_id in players table per spec.md FR-023
-- [ ] T105 [US5] Add session persistence in hooks/useAuth.ts: auto-login on return visit if signed in, maintain guest state across page reloads per spec.md FR-022
+- [X] T104 [US5] Implement upgrade flow in lib/auth/guest.ts: preserve display_name when guest signs in, update user_id in players table per spec.md FR-023
+- [X] T105 [US5] Add session persistence in hooks/useAuth.ts: auto-login on return visit if signed in, maintain guest state across page reloads per spec.md FR-022
 
 ### Privacy Compliance
 
-- [ ] T106 [US5] Add data deletion on game cleanup: ensure guest data deleted when game_sessions auto-deleted after 24 hours per spec.md FR-020
-- [ ] T107 [US5] Display privacy notice in GuestNamePrompt: inform users guest data is minimal (name + session ID) and temporary per spec.md FR-020
+- [X] T106 [US5] Add data deletion on game cleanup: ensure guest data deleted when game_sessions auto-deleted after 24 hours per spec.md FR-020
+- [X] T107 [US5] Display privacy notice in GuestNamePrompt: inform users guest data is minimal (name + session ID) and temporary per spec.md FR-020
 
 **Checkpoint**: Users can play as guests or sign in, data privacy requirements met
 

@@ -144,6 +144,18 @@ npx supabase db push
 npx supabase gen types typescript --local > lib/supabase/database.types.ts
 ```
 
+### Required Supabase Configuration
+
+After setting up the database, you must enable anonymous authentication:
+
+1. Go to your Supabase dashboard
+2. Navigate to **Authentication** → **Providers**
+3. Find **Email** provider
+4. Enable **"Allow anonymous sign-ins"**
+5. Save changes
+
+Without this setting enabled, users will see an error when trying to play as guests.
+
 ## 🤝 Contributing
 
 This is a learning/demo project. Feel free to fork and experiment!
