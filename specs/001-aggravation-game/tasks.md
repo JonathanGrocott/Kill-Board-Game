@@ -110,10 +110,10 @@
 
 ### Game Flow Integration
 
-- [ ] T054 [US1] Implement turn progression logic in app/game/[id]/play/page.tsx: listen for current_turn_player_id changes, enable/disable controls per spec.md FR-003
-- [ ] T055 [US1] Implement turn timeout handler in hooks/useTurnTimer.ts: call pass_turn RPC when 60 seconds expire, show warning at 50 seconds per spec.md FR-004
-- [ ] T056 [US1] Add move history display in components/game/MoveHistory.tsx: scrollable log of recent moves, captures, dice rolls per spec.md FR-031
-- [ ] T057 [US1] Implement shortcut logic in lib/game/rules.ts: detect when marble completes 1 lap, allow shortcut entry on next move per spec.md FR-006
+- [X] T054 [US1] Implement turn progression logic in app/game/[id]/play/page.tsx: listen for current_turn_player_id changes, enable/disable controls per spec.md FR-003
+- [X] T055 [US1] Implement turn timeout handler in hooks/useTurnTimer.ts: call pass_turn RPC when 60 seconds expire, show warning at 50 seconds per spec.md FR-004
+- [X] T056 [US1] Add move history display in components/game/MoveHistory.tsx: scrollable log of recent moves, captures, dice rolls per spec.md FR-031
+- [X] T057 [US1] Implement shortcut logic in lib/game/rules.ts: detect when marble completes 1 lap, allow shortcut entry on next move per spec.md FR-006
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - 4 players can play a complete game from start to win
 

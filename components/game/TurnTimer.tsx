@@ -6,9 +6,9 @@
  * Shows remaining time for current turn with warning animation
  */
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Card } from '@/components/ui/card';
-import { getTurnTimeRemaining, shouldShowTimeoutWarning } from '@/lib/game/rules';
+import { useTurnTimer } from '@/hooks/useTurnTimer';
 import type { Game } from '@/types/game';
 
 interface TurnTimerProps {
@@ -17,19 +17,10 @@ interface TurnTimerProps {
 }
 
 export function TurnTimer({ game, isYourTurn }: TurnTimerProps) {
-  const [timeRemaining, setTimeRemaining] = useState(60);
-  const [showWarning, setShowWarning] = useState(false);
-
-  useEffect(() => {
-    // Update timer every second
-    const interval = setInterval(() => {
-      const remaining = getTurnTimeRemaining(game);
-      setTimeRemaining(remaining);
-      setShowWarning(shouldShowTimeoutWarning(game));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [game]);
+  const { timeRemaining, showWarning } = useTurnTimer({
+    game,
+    isYourTurn,
+  });
 
   const percentage = (timeRemaining / 60) * 100;
 
