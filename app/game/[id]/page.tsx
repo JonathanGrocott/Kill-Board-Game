@@ -56,7 +56,7 @@ export default function GameLobbyPage({ params }: GameLobbyPageProps) {
     } catch (err) {
       console.error('Failed to load game:', err);
       console.error('Error details:', JSON.stringify(err, null, 2));
-      
+
       // Provide more specific error messages
       const errorObj = err as { code?: string; message?: string };
       if (errorObj?.code === 'PGRST116') {
@@ -85,31 +85,90 @@ export default function GameLobbyPage({ params }: GameLobbyPageProps) {
     loadGameData();
   }, [loadGameData]);
 
+  // Fallback: Poll game status if real-time doesn't trigger redirect
+  useEffect(() => {
+    if (!game) return;
+
+    // If game is already active, redirect immediately
+    if (game.status === 'active') {
+      console.log('[Lobby] Game is active on mount, redirecting...');
+      router.push(`/game/${gameId}/play`);
+      return;
+    }
+
+    // Set up polling interval to check game status
+    console.log('[Lobby] Setting up fallback polling interval');
+    const pollInterval = setInterval(async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_game_state', {
+          p_game_id: gameId,
+        });
+
+        if (!error && data) {
+          const gameData = data as any;
+          const currentStatus = gameData.status;
+          console.log('[Lobby Polling] Current game status:', currentStatus);
+
+          if (currentStatus === 'active') {
+            console.log('[Lobby Polling] Game is ACTIVE! Redirecting...');
+            clearInterval(pollInterval);
+            router.push(`/game/${gameId}/play`);
+          }
+        }
+      } catch (err) {
+        console.error('[Lobby Polling] Error checking game status:', err);
+      }
+    }, 2000); // Poll every 2 seconds
+
+    // Clean up interval
+    return () => {
+      console.log('[Lobby] Clearing fallback polling interval');
+      clearInterval(pollInterval);
+    };
+  }, [game, gameId, router]);
+
   // Setup Realtime subscriptions
   useEffect(() => {
+    console.log('[Lobby] Setting up real-time subscription for game:', gameId);
+
     const channel = setupLobbyChannel(gameId, {
       onGameUpdate: (updatedGame) => {
+        console.log('[Lobby] Game update received:', {
+          status: updatedGame.status,
+          currentTurnPlayerId: updatedGame.current_turn_player_id,
+          fullGameData: updatedGame
+        });
+
         setGame(updatedGame as Game);
-        
+
         // Auto-navigate to play page when game starts
         if (updatedGame.status === 'active') {
+          console.log('[Lobby] Game is ACTIVE! Redirecting to play page...');
           router.push(`/game/${gameId}/play`);
+        } else {
+          console.log('[Lobby] Game status is still:', updatedGame.status);
         }
       },
       onPlayerJoin: (newPlayer) => {
+        console.log('[Lobby] Player joined:', newPlayer.display_name, newPlayer.color);
         setPlayers((prev) => [...prev, newPlayer as Player]);
       },
       onPlayerUpdate: (updatedPlayer) => {
+        console.log('[Lobby] Player updated:', updatedPlayer.display_name);
         setPlayers((prev) =>
           prev.map((p) => (p.id === updatedPlayer.id ? (updatedPlayer as Player) : p))
         );
       },
     });
 
+    console.log('[Lobby] Real-time channel created, subscribing...');
+
     return () => {
+      console.log('[Lobby] Unsubscribing from real-time channel');
       unsubscribeChannel(channel);
     };
   }, [gameId, router]);
+
 
   if (isLoading) {
     return (

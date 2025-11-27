@@ -37,6 +37,8 @@ export function setupLobbyChannel(
     onPlayerUpdate?: (player: PlayerPayload) => void;
   }
 ): RealtimeChannel {
+  console.log('[Realtime] Setting up lobby channel for game:', gameId);
+  
   const channel = supabase
     .channel(`lobby:${gameId}`)
     .on(
@@ -48,6 +50,7 @@ export function setupLobbyChannel(
         filter: `id=eq.${gameId}`,
       },
       (payload) => {
+        console.log('[Realtime] Game session UPDATE event received:', payload);
         callbacks.onGameUpdate?.(payload.new as GameSessionPayload);
       }
     )
@@ -60,6 +63,7 @@ export function setupLobbyChannel(
         filter: `game_session_id=eq.${gameId}`,
       },
       (payload) => {
+        console.log('[Realtime] Player INSERT event received:', payload);
         callbacks.onPlayerJoin?.(payload.new as PlayerPayload);
       }
     )
@@ -72,11 +76,22 @@ export function setupLobbyChannel(
         filter: `game_session_id=eq.${gameId}`,
       },
       (payload) => {
+        console.log('[Realtime] Player UPDATE event received:', payload);
         callbacks.onPlayerUpdate?.(payload.new as PlayerPayload);
       }
     );
 
-  channel.subscribe();
+  channel.subscribe((status) => {
+    console.log('[Realtime] Lobby channel subscription status:', status);
+    if (status === 'SUBSCRIBED') {
+      console.log('[Realtime] ✅ Successfully subscribed to lobby channel');
+    } else if (status === 'CHANNEL_ERROR') {
+      console.error('[Realtime] ❌ Channel subscription error');
+    } else if (status === 'TIMED_OUT') {
+      console.error('[Realtime] ❌ Channel subscription timed out');
+    }
+  });
+  
   return channel;
 }
 
