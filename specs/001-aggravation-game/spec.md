@@ -171,7 +171,7 @@ Users can add bot players to fill empty slots in a game, enabling solo play and 
 
 #### User Interface
 
-- **FR-024**: System MUST render a complete Aggravation game board with starting zones, main track, shortcuts, and home zones for 4 players
+- **FR-024**: System MUST render a complete Aggravation game board with starting zones, main track, shortcuts, and home zones for 4 players. 
 - **FR-025**: System MUST display dice roll results with animation
 - **FR-026**: System MUST animate marble movements along the board path
 - **FR-027**: System MUST highlight valid destination spaces when a marble is selected
