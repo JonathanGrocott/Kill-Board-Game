@@ -141,8 +141,8 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
 
   // Handle marble move
   const handleMarbleMove = useCallback(
-    async (marbleId: string, diceValue: number) => {
-      const result = await moveMarble(marbleId, diceValue);
+    async (marbleId: string) => {
+      const result = await moveMarble(marbleId);
       if (result) {
         // Clear valid marbles
         setValidMarbleIds([]);
@@ -173,7 +173,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
 
       // If marble already selected, move it
       if (selectedMarbleId === marble.id && gameState.game.current_dice_roll) {
-        handleMarbleMove(marble.id, gameState.game.current_dice_roll);
+        handleMarbleMove(marble.id);
       } else {
         // Select marble
         selectMarble(marble.id);

@@ -34,7 +34,7 @@ export function useGameState(gameId: string) {
       }
 
       if (data) {
-        setGameState(data as GameState);
+        setGameState(data as unknown as GameState);
       }
     } catch (err) {
       const errorMessage = getErrorMessage(err);
@@ -61,7 +61,7 @@ export function useGameState(gameId: string) {
         throw rpcError;
       }
 
-      return data as DiceRollResult;
+      return data as unknown as DiceRollResult;
     } catch (err) {
       const errorMessage = getErrorMessage(err);
       setError(errorMessage);
@@ -76,14 +76,14 @@ export function useGameState(gameId: string) {
    * Move a marble
    */
   const moveMarble = useCallback(
-    async (marbleId: string, diceValue: number): Promise<MoveResult | null> => {
+    async (marbleId: string): Promise<MoveResult | null> => {
       try {
         setIsLoading(true);
         setError(null);
 
         const { data, error: rpcError } = await supabase.rpc('move_marble', {
+          p_game_id: gameId,
           p_marble_id: marbleId,
-          p_dice_value: diceValue,
         });
 
         if (rpcError) {
@@ -93,7 +93,7 @@ export function useGameState(gameId: string) {
         // Clear selected marble after successful move
         setSelectedMarbleId(null);
 
-        return data as MoveResult;
+        return data as unknown as MoveResult;
       } catch (err) {
         const errorMessage = getErrorMessage(err);
         setError(errorMessage);
@@ -103,7 +103,7 @@ export function useGameState(gameId: string) {
         setIsLoading(false);
       }
     },
-    []
+    [gameId]
   );
 
   /**

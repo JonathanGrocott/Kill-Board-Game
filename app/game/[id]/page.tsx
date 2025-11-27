@@ -41,9 +41,10 @@ export default function GameLobbyPage({ params }: GameLobbyPageProps) {
 
       if (rpcError) throw rpcError;
 
-      if (data) {
-        setGame(data.game as Game);
-        setPlayers(data.players as Player[]);
+      if (data && typeof data === 'object' && data !== null) {
+        const gameData = data as unknown as { game: Game; players: Player[] };
+        setGame(gameData.game);
+        setPlayers(gameData.players);
       }
     } catch (err) {
       console.error('Failed to load game:', err);

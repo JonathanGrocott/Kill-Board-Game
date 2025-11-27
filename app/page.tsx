@@ -43,10 +43,10 @@ export default function HomePage() {
 
     try {
       // Sign in as guest
-      const { user, error: authError } = await signInAsGuest(displayName);
+      const authData = await signInAsGuest({ displayName });
       
-      if (authError || !user) {
-        throw new Error(authError || 'Failed to sign in');
+      if (!authData.user) {
+        throw new Error('Failed to sign in');
       }
 
       if (promptAction === 'create') {
@@ -59,8 +59,9 @@ export default function HomePage() {
 
         if (rpcError) throw rpcError;
 
-        if (data && data.game_id) {
-          router.push(`/game/${data.game_id}`);
+        if (data) {
+          const gameData = data as unknown as { game_id: string };
+          router.push(`/game/${gameData.game_id}`);
         }
       } else {
         // Join existing game
