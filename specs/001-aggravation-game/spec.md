@@ -98,6 +98,24 @@ Users can enter a display name to play without creating an account, with the opt
 
 ---
 
+### User Story 6 - Bot Players for Testing & Solo Play (Priority: P6)
+
+Users can add bot players to fill empty slots in a game, enabling solo play and automated testing. Bots make random valid moves automatically on their turns.
+
+**Why this priority**: Enables testing without coordinating multiple real players, allows solo practice/learning, and provides fallback when not enough human players are available. Critical for development workflow and user convenience.
+
+**Independent Test**: Can be tested by creating a game, adding 1-3 bot players, starting the game, and verifying bots automatically take turns by rolling dice and making random valid moves until game completion.
+
+**Acceptance Scenarios**:
+
+1. **Given** a user is in a game lobby with fewer than 4 players, **When** they click "Add Bot", **Then** a bot player joins with a generated name (e.g., "Bot 1", "Bot 2") and assigned color
+2. **Given** a game has one or more bot players, **When** it's a bot's turn, **Then** the bot automatically rolls the dice within 2 seconds without human input
+3. **Given** a bot has rolled the dice, **When** valid moves exist, **Then** the bot randomly selects one valid marble and destination, completes the move within 1 second
+4. **Given** a bot has no valid moves, **When** the turn timer would normally count down, **Then** the bot's turn passes immediately to the next player
+5. **Given** a user wants to practice alone, **When** they create a game and add 3 bots, **Then** they can play a complete game against bots and win/lose normally
+
+---
+
 ### Edge Cases
 
 - What happens when a player disconnects mid-game? (Auto-skip their turns after 30s timeout, allow reconnection to resume)
@@ -122,6 +140,8 @@ Users can enter a display name to play without creating an account, with the opt
 - **FR-004**: System MUST enforce 60-second turn timer with 10-second warning; automatically pass turn if time expires
 - **FR-005**: System MUST detect win condition when one player gets all 4 marbles into home zone and end the game
 - **FR-006**: System MUST implement shortcuts - when a marble completes one full lap, it can take the center shortcut to home
+- **FR-007**: System MUST support bot players that automatically roll dice and make random valid moves on their turns
+- **FR-008**: System MUST allow bots to complete their turn actions within 3 seconds (2s to roll, 1s to move) to maintain game flow
 
 #### Multiplayer & Real-Time
 
@@ -137,47 +157,49 @@ Users can enter a display name to play without creating an account, with the opt
 - **FR-013**: System MUST allow users to join an existing game via shareable URL until lobby is full (4 players)
 - **FR-014**: System MUST assign each player a unique color (red, blue, green, yellow) on joining
 - **FR-015**: System MUST display all connected players in the lobby with their names and colors
-- **FR-016**: System MUST allow the game host to start the game when 2+ players are present
-- **FR-017**: System MUST automatically delete game sessions 24 hours after last activity to maintain database hygiene
+- **FR-016**: System MUST allow the game host to add bot players to fill empty slots (up to 4 total players including humans and bots)
+- **FR-017**: System MUST allow the game host to start the game when 2+ players are present (including bots)
+- **FR-018**: System MUST automatically delete game sessions 24 hours after last activity to maintain database hygiene
 
 #### Authentication
 
-- **FR-018**: System MUST allow guest access by collecting only a display name (2-20 characters, no account required)
-- **FR-019**: System MUST collect minimal data for guest players (display name and session ID only) and delete all guest data when game session is deleted
-- **FR-020**: System MUST support optional sign-in via Supabase Auth with email/password, Google OAuth, and GitHub OAuth
-- **FR-021**: System MUST persist signed-in user identity across sessions using Supabase Auth tokens
-- **FR-022**: System MUST allow guest users to convert to signed-in users mid-session without losing game state
+- **FR-019**: System MUST allow guest access by collecting only a display name (2-20 characters, no account required)
+- **FR-020**: System MUST collect minimal data for guest players (display name and session ID only) and delete all guest data when game session is deleted
+- **FR-021**: System MUST support optional sign-in via Supabase Auth with email/password, Google OAuth, and GitHub OAuth
+- **FR-022**: System MUST persist signed-in user identity across sessions using Supabase Auth tokens
+- **FR-023**: System MUST allow guest users to convert to signed-in users mid-session without losing game state
 
 #### User Interface
 
-- **FR-023**: System MUST render a complete Aggravation game board with starting zones, main track, shortcuts, and home zones for 4 players
-- **FR-024**: System MUST display dice roll results with animation
-- **FR-025**: System MUST animate marble movements along the board path
-- **FR-026**: System MUST highlight valid destination spaces when a marble is selected
-- **FR-027**: System MUST display current turn indicator showing which player is active
-- **FR-028**: System MUST display turn timer countdown with visual warning when 10 seconds remain
-- **FR-029**: System MUST display game history log showing recent moves and events
-- **FR-030**: System MUST display victory screen when a player wins with option to start new game
+- **FR-024**: System MUST render a complete Aggravation game board with starting zones, main track, shortcuts, and home zones for 4 players
+- **FR-025**: System MUST display dice roll results with animation
+- **FR-026**: System MUST animate marble movements along the board path
+- **FR-027**: System MUST highlight valid destination spaces when a marble is selected
+- **FR-028**: System MUST display current turn indicator showing which player is active
+- **FR-029**: System MUST visually distinguish bot players from human players (e.g., bot icon, different styling)
+- **FR-030**: System MUST display turn timer countdown with visual warning when 10 seconds remain
+- **FR-031**: System MUST display game history log showing recent moves and events
+- **FR-032**: System MUST display victory screen when a player wins with option to start new game
 
 #### Mobile & Responsive
 
-- **FR-031**: System MUST be fully playable on mobile browsers (iOS Safari, Chrome Android) with touch-only input
-- **FR-032**: System MUST adapt UI layout for screen sizes from 375px width (iPhone SE) to 1920px+ (desktop)
-- **FR-033**: System MUST use touch targets minimum 44x44px for all interactive elements on mobile
-- **FR-034**: System MUST support both portrait and landscape orientations on mobile devices
+- **FR-033**: System MUST be fully playable on mobile browsers (iOS Safari, Chrome Android) with touch-only input
+- **FR-034**: System MUST adapt UI layout for screen sizes from 375px width (iPhone SE) to 1920px+ (desktop)
+- **FR-035**: System MUST use touch targets minimum 44x44px for all interactive elements on mobile
+- **FR-036**: System MUST support both portrait and landscape orientations on mobile devices
 
 #### Technical Requirements
 
-- **FR-035**: System MUST be built with open-source technologies only (no proprietary licenses)
-- **FR-036**: System MUST deploy to Vercel with zero manual configuration beyond environment variables
-- **FR-037**: System MUST use Supabase for all backend needs (PostgreSQL database, Auth, Realtime)
-- **FR-038**: System MUST work in modern browsers (Chrome 90+, Firefox 88+, Safari 14+, Edge 90+) without polyfills
-- **FR-039**: System MUST require no installation - direct browser access only
+- **FR-037**: System MUST be built with open-source technologies only (no proprietary licenses)
+- **FR-038**: System MUST deploy to Vercel with zero manual configuration beyond environment variables
+- **FR-039**: System MUST use Supabase for all backend needs (PostgreSQL database, Auth, Realtime)
+- **FR-040**: System MUST work in modern browsers (Chrome 90+, Firefox 88+, Safari 14+, Edge 90+) without polyfills
+- **FR-041**: System MUST require no installation - direct browser access only
 
 ### Key Entities
 
 - **Game Session**: Represents one complete game, contains game ID, status (lobby/active/completed), winner, created timestamp, host player reference
-- **Player**: Represents one participant, contains player ID, display name, color assignment (red/blue/green/yellow), authentication status (guest/signed-in), connection status (connected/disconnected)
+- **Player**: Represents one participant, contains player ID, display name, color assignment (red/blue/green/yellow), player type (human/bot), authentication status (guest/signed-in for humans), connection status (connected/disconnected for humans)
 - **Marble**: Represents one game piece, contains position on board (0-67 for main track, special values for start/home), player ownership, lap count
 - **Game State**: Represents current game condition, contains current turn (player reference), dice value, marble positions for all players, move history
 - **Move**: Represents one game action, contains timestamp, player reference, marble moved, start position, end position, special events (opponent aggravated, marble home, etc.)
@@ -207,7 +229,7 @@ Users can enter a display name to play without creating an account, with the opt
 - Supabase free tier is sufficient for initial deployment (can upgrade if needed)
 - Vercel free tier deployment is acceptable for MVP
 - Games are casual/social - no ranking system or competitive matchmaking needed initially
-- No AI opponent needed - human players only
+- Bot players use simple random move selection (no advanced AI strategy needed for MVP)
 - English language only for MVP (internationalization can be added later)
 - No in-game chat needed initially (players coordinate via external means)
 - Standard 4-player Aggravation board layout (not 6-player variant)

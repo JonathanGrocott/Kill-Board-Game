@@ -25,11 +25,11 @@
 - [x] Dependencies and assumptions identified
 
 **Notes**: 
-- All 35 functional requirements are concrete and testable (e.g., "MUST support 2-4 players", "MUST broadcast within 200ms")
+- All 41 functional requirements are concrete and testable (e.g., "MUST support 2-4 players", "MUST broadcast within 200ms", "MUST support bot players")
 - Success criteria use measurable outcomes (5 seconds, 200ms, 2 seconds, 60fps, 10 concurrent sessions)
 - Success criteria avoid implementation terms - focus on user-facing metrics
-- 8 edge cases documented with expected behaviors
-- Scope bounded by assumptions (4-player variant, English only, no AI, no chat, casual play)
+- 9 edge cases documented with expected behaviors
+- Scope bounded by assumptions (4-player variant, English only, simple bot AI, no chat, casual play)
 
 ## Feature Readiness
 
@@ -39,10 +39,11 @@
 - [x] No implementation details leak into specification
 
 **Notes**: 
-- 5 user stories cover: core gameplay (P1), game creation/joining (P2), real-time sync (P3), mobile experience (P4), authentication (P5)
+- 5 user stories cover: core gameplay (P1), game creation/joining (P2), real-time sync (P3), mobile experience (P4), authentication (P5), bot players (P6)
 - Each story has 4-6 acceptance scenarios using Given/When/Then format
 - Each story can be independently tested and delivered as incremental value
 - P1 (Play Complete Game) represents the true MVP - can be demonstrated alone
+- P6 (Bot Players) enables solo testing and development workflow
 
 ## Validation Summary
 
@@ -50,8 +51,9 @@
 
 All checklist items passed on first validation. The specification is:
 - Technology-agnostic (constitutional requirement met)
-- Comprehensive (35 functional requirements, 5 user stories, 8 edge cases)
+- Comprehensive (41 functional requirements, 6 user stories, 9 edge cases)
 - Measurable (12 success criteria with concrete metrics)
 - Implementable (clear scope, documented assumptions, prioritized user stories)
+- Testable (bot players enable solo testing without coordinating multiple users)
 
 **Recommended Next Step**: Proceed to `/speckit.plan` to create technical implementation plan.
