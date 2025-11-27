@@ -16,6 +16,7 @@ import { VictoryScreen } from '@/components/game/VictoryScreen';
 import { ConnectionStatus } from '@/components/game/ConnectionStatus';
 import { useGameState } from '@/hooks/useGameState';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
+import { supabase } from '@/lib/supabase/client';
 import type { Marble } from '@/types/game';
 import { canRollDice, canMoveMarble as canMoveMarbleRule } from '@/lib/game/rules';
 import { getValidMarbles } from '@/lib/game/moves';
@@ -45,6 +46,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
   const [currentPlayerId, setCurrentPlayerId] = useState<string>('');
   const [isRolling, setIsRolling] = useState(false);
   const [validMarbleIds, setValidMarbleIds] = useState<string[]>([]);
+  const [isBotThinking, setIsBotThinking] = useState(false);
 
   // Setup Realtime sync
   const { sendDiceRoll, sendMarbleMove, connectionState } = useRealtimeSync({
@@ -108,6 +110,44 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
     };
     getCurrentPlayer();
   }, [gameState]);
+
+  // Bot turn detection and execution
+  useEffect(() => {
+    if (!gameState || gameState.game.status !== 'active') return;
+
+    const currentTurnPlayer = gameState.players.find(
+      p => p.id === gameState.game.current_turn_player_id
+    );
+
+    // Check if it's a bot's turn
+    if (currentTurnPlayer?.is_bot && !isBotThinking) {
+      setIsBotThinking(true);
+
+      // Add delay for natural feel (2 seconds)
+      const botTimer = setTimeout(async () => {
+        try {
+          // Execute bot turn via RPC
+          const { error: botError } = await supabase.rpc('execute_bot_turn', {
+            p_game_id: gameId,
+          });
+
+          if (botError) {
+            console.error('Bot turn failed:', botError);
+          }
+        } catch (err) {
+          console.error('Failed to execute bot turn:', err);
+        } finally {
+          setIsBotThinking(false);
+        }
+      }, 2000);
+
+      return () => {
+        clearTimeout(botTimer);
+      };
+    } else if (!currentTurnPlayer?.is_bot) {
+      setIsBotThinking(false);
+    }
+  }, [gameState, gameId, isBotThinking]);
 
   // Handle dice roll
   const handleRollDice = useCallback(async () => {
@@ -262,6 +302,18 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
           {/* Game controls - bottom on mobile, sidebar on desktop */}
           <div className="game-controls lg:space-y-4 bg-white border-t lg:border-t-0 lg:border-none">
             <div className="p-4 space-y-3 lg:space-y-4">
+              {/* Bot thinking indicator */}
+              {isBotThinking && currentPlayer?.is_bot && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="animate-pulse">🤖</div>
+                    <p className="text-blue-800 font-medium">
+                      {currentPlayer.display_name} is thinking...
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Turn indicator */}
               <TurnIndicator
                 currentPlayer={currentPlayer || null}

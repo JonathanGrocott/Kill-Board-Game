@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PlayerList } from '@/components/lobby/PlayerList';
 import { ShareLink } from '@/components/lobby/ShareLink';
+import { AddBotButton } from '@/components/lobby/AddBotButton';
 import { supabase } from '@/lib/supabase/client';
 import { setupLobbyChannel, unsubscribeChannel } from '@/lib/supabase/realtime';
 import type { Game, Player } from '@/types/game';
@@ -94,19 +95,6 @@ export default function GameLobbyPage({ params }: GameLobbyPageProps) {
     };
   }, [gameId, router]);
 
-  const handleAddBot = async () => {
-    try {
-      const { error: rpcError } = await supabase.rpc('add_bot_player', {
-        p_game_id: gameId,
-      });
-
-      if (rpcError) throw rpcError;
-    } catch (err) {
-      console.error('Failed to add bot:', err);
-      setError('Failed to add bot player');
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -131,7 +119,6 @@ export default function GameLobbyPage({ params }: GameLobbyPageProps) {
 
   const isGameFull = players.length >= game.num_players;
   const isHost = players.length > 0 && players[0].user_id === currentUserId;
-  const canAddBot = !isGameFull && game.status === 'waiting';
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -166,16 +153,12 @@ export default function GameLobbyPage({ params }: GameLobbyPageProps) {
 
           {/* Actions */}
           <div className="space-y-3">
-            {canAddBot && (
-              <Button
-                onClick={handleAddBot}
-                variant="outline"
-                className="w-full"
-                size="lg"
-              >
-                Add Bot Player
-              </Button>
-            )}
+            <AddBotButton
+              gameId={gameId}
+              currentPlayerCount={players.length}
+              maxPlayers={game.num_players}
+              disabled={game.status !== 'waiting'}
+            />
 
             <Button
               onClick={() => router.push('/')}

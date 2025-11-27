@@ -259,26 +259,26 @@
 
 ### Bot Player Management
 
-- [ ] T108 [US6] Create AddBotButton component in components/lobby/AddBotButton.tsx: "Add Bot" button in lobby, calls add_bot_player RPC per spec.md FR-016
-- [ ] T109 [US6] Update PlayerList component in components/lobby/PlayerList.tsx: show "Bot" badge for is_bot = true players, distinguish from humans per spec.md FR-029
-- [ ] T110 [US6] Add bot generation logic in RPC add_bot_player: set display_name = "Bot 1", "Bot 2", etc., increment based on existing bot count per spec.md acceptance scenario 6.1
+- [X] T108 [US6] Create AddBotButton component in components/lobby/AddBotButton.tsx: "Add Bot" button in lobby, calls add_bot_player RPC per spec.md FR-016
+- [X] T109 [US6] Update PlayerList component in components/lobby/PlayerList.tsx: show "Bot" badge for is_bot = true players, distinguish from humans per spec.md FR-029
+- [X] T110 [US6] Add bot generation logic in RPC add_bot_player: set display_name = "Bot 1", "Bot 2", etc., increment based on existing bot count per spec.md acceptance scenario 6.1
 
 ### Bot AI Implementation
 
-- [ ] T111 [US6] Implement bot turn detection in app/game/[id]/play/page.tsx: when current_turn_player.is_bot = true, auto-trigger execute_bot_turn after 2s delay per spec.md acceptance scenario 6.2
-- [ ] T112 [US6] Verify generate_bot_move function in supabase/migrations/002_turn_functions.sql: randomly select valid marble, handle no valid moves case per data-model.md
-- [ ] T113 [US6] Verify execute_bot_turn RPC in supabase/migrations/004_rpc_turn_execution.sql: call roll_dice → generate_bot_move → move_marble sequence per contracts/rpc-functions.md
+- [X] T111 [US6] Implement bot turn detection in app/game/[id]/play/page.tsx: when current_turn_player.is_bot = true, auto-trigger execute_bot_turn after 2s delay per spec.md acceptance scenario 6.2
+- [X] T112 [US6] Verify generate_bot_move function in supabase/migrations/002_turn_functions.sql: randomly select valid marble, handle no valid moves case per data-model.md
+- [X] T113 [US6] Verify execute_bot_turn RPC in supabase/migrations/004_rpc_turn_execution.sql: call roll_dice → generate_bot_move → move_marble sequence per contracts/rpc-functions.md
 
 ### Bot Behavior
 
-- [ ] T114 [US6] Add bot move delay in app/game/[id]/play/page.tsx: 2s before dice roll, 1s before marble move for natural feel per spec.md FR-008
-- [ ] T115 [US6] Implement bot pass turn in execute_bot_turn RPC: if generate_bot_move returns NULL (no valid moves), call pass_turn immediately per spec.md acceptance scenario 6.4
-- [ ] T116 [US6] Add bot visual feedback in components/game/Board.tsx: show "Bot is thinking..." indicator during bot turn delay per spec.md FR-029
+- [X] T114 [US6] Add bot move delay in app/game/[id]/play/page.tsx: 2s before dice roll, 1s before marble move for natural feel per spec.md FR-008
+- [X] T115 [US6] Implement bot pass turn in execute_bot_turn RPC: if generate_bot_move returns NULL (no valid moves), call pass_turn immediately per spec.md acceptance scenario 6.4
+- [X] T116 [US6] Add bot visual feedback in components/game/Board.tsx: show "Bot is thinking..." indicator during bot turn delay per spec.md FR-029
 
 ### Solo Play Support
 
-- [ ] T117 [US6] Update lobby validation in app/game/[id]/page.tsx: allow game start with 1 human + 3 bots (total 4 players) per spec.md acceptance scenario 6.5
-- [ ] T118 [US6] Add solo play tutorial in app/page.tsx: "Practice with Bots" button that creates game and adds 3 bots automatically per spec.md user story 6 rationale
+- [X] T117 [US6] Update lobby validation in app/game/[id]/page.tsx: allow game start with 1 human + 3 bots (total 4 players) per spec.md acceptance scenario 6.5
+- [X] T118 [US6] Add solo play tutorial in app/page.tsx: "Practice with Bots" button that creates game and adds 3 bots automatically per spec.md user story 6 rationale
 
 **Checkpoint**: Bot players fully functional - users can practice solo or test without coordinating multiple humans
 

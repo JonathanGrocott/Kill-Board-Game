@@ -37,6 +37,55 @@ export default function HomePage() {
     setShowNamePrompt(true);
   };
 
+  const handlePracticeWithBots = async () => {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Get or create anonymous session
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        // Need to sign in first
+        setPromptAction('create');
+        setShowNamePrompt(true);
+        setIsLoading(false);
+        return;
+      }
+
+      // Create game
+      const { data, error: createError } = await supabase.rpc('create_game_session', {
+        p_display_name: user.user_metadata?.display_name || 'Player',
+        p_num_players: 4,
+        p_enable_shortcuts: true,
+      });
+
+      if (createError) throw createError;
+
+      if (data) {
+        const gameData = data as unknown as { game_id: string };
+        const newGameId = gameData.game_id;
+
+        // Add 3 bots
+        for (let i = 0; i < 3; i++) {
+          const { error: botError } = await supabase.rpc('add_bot_player', {
+            p_game_id: newGameId,
+          });
+          if (botError) {
+            console.error('Failed to add bot:', botError);
+          }
+        }
+
+        router.push(`/game/${newGameId}`);
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create practice game');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleNameSubmit = async (displayName: string) => {
     setIsLoading(true);
     setError('');
@@ -88,6 +137,7 @@ export default function HomePage() {
       }
     } catch (err) {
       console.error('Error:', err);
+      console.error('Error details:', JSON.stringify(err, null, 2));
       
       // Handle anonymous sign-in disabled error
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
@@ -96,6 +146,16 @@ export default function HomePage() {
           'Anonymous sign-in is not enabled. Please enable it in your Supabase dashboard: ' +
           'Authentication > Providers > Email > Enable anonymous sign-ins'
         );
+      } else if (errorMessage === 'An error occurred' && typeof err === 'object' && err !== null) {
+        // Try to extract more details from the error object
+        const errObj = err as any;
+        if (errObj.code) {
+          setError(`Database error (${errObj.code}): ${errObj.message || errObj.hint || 'Unknown error'}`);
+        } else if (errObj.details) {
+          setError(`Error: ${errObj.details}`);
+        } else {
+          setError('An unexpected error occurred. Please check the console for details and ensure database migrations are applied.');
+        }
       } else {
         setError(errorMessage);
       }
@@ -142,6 +202,19 @@ export default function HomePage() {
               disabled={isLoading}
             >
               Create New Game
+            </Button>
+          </div>
+
+          {/* Practice with Bots */}
+          <div>
+            <Button
+              onClick={handlePracticeWithBots}
+              size="lg"
+              variant="secondary"
+              className="w-full text-lg h-14"
+              disabled={isLoading}
+            >
+              🤖 Practice with Bots
             </Button>
           </div>
 
