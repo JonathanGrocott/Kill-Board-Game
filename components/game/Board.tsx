@@ -18,18 +18,22 @@ interface BoardProps {
   marbles: MarbleType[];
   players: Player[];
   onMarbleClick?: (marble: MarbleType) => void;
+  onMarbleDragEnd?: (marbleId: string, endPosition: { x: number; y: number }) => void;
   selectedMarbleId?: string | null;
   validMarbleIds?: string[];
   highlightedSpaces?: Array<{ type: string; index: number | null }>;
+  isDragEnabled?: boolean;
 }
 
 export function Board({
   marbles,
   players,
   onMarbleClick,
+  onMarbleDragEnd,
   selectedMarbleId,
   validMarbleIds = [],
-  highlightedSpaces = []
+  highlightedSpaces = [],
+  isDragEnabled = false,
 }: BoardProps) {
   // Board dimensions matching the SVG template
   const boardSize = 600;
@@ -227,14 +231,18 @@ export function Board({
           const player = players.find(p => p.id === marble.player_id);
           if (!player) return null;
 
+          const isValid = validMarbleIds.includes(marble.id);
+
           return (
             <Marble
               key={marble.id}
               marble={marble}
               playerColor={player.color}
               isSelected={selectedMarbleId === marble.id}
-              isValid={validMarbleIds.includes(marble.id)}
+              isValid={isValid}
               onClick={() => onMarbleClick?.(marble)}
+              onDragEnd={onMarbleDragEnd}
+              isDraggable={isDragEnabled && isValid}
             />
           );
         })}

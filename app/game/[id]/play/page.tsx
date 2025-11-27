@@ -112,15 +112,18 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
     getCurrentPlayer();
   }, [gameState]);
 
-  // Bot turn automation
+  // Bot turn automation - track current turn player ID to properly detect changes
+  const currentTurnPlayerId = gameState?.game?.current_turn_player_id;
+  const currentDiceRoll = gameState?.game?.current_dice_roll;
+  
   useEffect(() => {
-    if (!gameState?.game) {
+    if (!gameState?.game || !currentTurnPlayerId) {
       console.log('[Bot Check] No game state yet');
       return;
     }
 
     const currentTurnPlayer = gameState.players.find(
-      p => p.id === gameState.game.current_turn_player_id
+      p => p.id === currentTurnPlayerId
     );
 
     console.log('[Bot Check] Current turn player:', {
@@ -128,15 +131,15 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
       displayName: currentTurnPlayer?.display_name,
       isBot: currentTurnPlayer?.is_bot,
       isBotThinking,
-      currentDiceRoll: gameState.game.current_dice_roll
+      currentDiceRoll
     });
 
-    // Check if it's a bot's turn
+    // Check if it's a bot's turn and we're not already processing
     if (currentTurnPlayer?.is_bot && !isBotThinking) {
-      console.log('[Bot] Bot turn detected, executing in 2 seconds...');
+      console.log('[Bot] Bot turn detected, executing in 1.5 seconds...');
       setIsBotThinking(true);
 
-      // Add delay for natural feel (2 seconds)
+      // Add delay for natural feel (1.5 seconds)
       const botTimer = setTimeout(async () => {
         try {
           console.log('[Bot] Executing bot turn for player:', currentTurnPlayer.id);
@@ -150,12 +153,18 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
           } else {
             console.log('[Bot] Bot turn completed:', data);
           }
+          
+          // Refresh game state to get the updated turn
+          await refreshGameState();
         } catch (err) {
           console.error('[Bot] Failed to execute bot turn:', err);
         } finally {
-          setIsBotThinking(false);
+          // Reset bot thinking state after a short delay to allow state to propagate
+          setTimeout(() => {
+            setIsBotThinking(false);
+          }, 500);
         }
-      }, 2000);
+      }, 1500);
 
       return () => {
         clearTimeout(botTimer);
@@ -163,7 +172,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
     } else if (!currentTurnPlayer?.is_bot) {
       setIsBotThinking(false);
     }
-  }, [gameState?.game, gameState?.players, gameId, isBotThinking]);
+  }, [currentTurnPlayerId, currentDiceRoll, gameState?.game, gameState?.players, gameId, isBotThinking, refreshGameState]);
 
   // Handle dice roll
   const handleDiceRoll = useCallback(async () => {
@@ -294,6 +303,35 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
     [gameState, currentPlayerId, selectedMarbleId, validMarbleIds, selectMarble, handleMarbleMove]
   );
 
+  // Handle marble drag end - execute move when valid marble is dragged
+  const handleMarbleDragEnd = useCallback(
+    (marbleId: string, endPosition: { x: number; y: number }) => {
+      console.log('[Drag] Marble drag ended:', marbleId, endPosition);
+      
+      if (!gameState?.game || !currentPlayerId) {
+        console.log('[Drag] No game or player ID');
+        return;
+      }
+
+      // Check if it's player's turn and dice is rolled
+      if (!canMoveMarbleRule(gameState.game, currentPlayerId)) {
+        console.log('[Drag] Cannot move rule failed');
+        return;
+      }
+
+      // Check if marble is valid for current dice roll
+      if (!validMarbleIds.includes(marbleId)) {
+        console.log('[Drag] Marble not in valid list');
+        return;
+      }
+
+      // Execute the move (the destination is determined by dice roll, not drag position)
+      console.log('[Drag] Executing move for marble:', marbleId);
+      handleMarbleMove(marbleId);
+    },
+    [gameState, currentPlayerId, validMarbleIds, handleMarbleMove]
+  );
+
   if (!gameState?.game) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -309,6 +347,9 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
   );
   const isYourTurn = currentPlayer?.id === currentPlayerId;
   const winner = gameState.players?.find(p => p.id === gameState.game.winner_player_id);
+  
+  // Determine if drag should be enabled (it's your turn and dice is rolled)
+  const isDragEnabled = isYourTurn && gameState.game.current_dice_roll !== null;
 
   // Show victory screen if game is completed
   if (gameState.game.status === 'completed' && winner) {
@@ -338,9 +379,11 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
               marbles={gameState.marbles || []}
               players={gameState.players || []}
               onMarbleClick={handleMarbleClick}
+              onMarbleDragEnd={handleMarbleDragEnd}
               selectedMarbleId={selectedMarbleId}
               validMarbleIds={validMarbleIds}
               highlightedSpaces={[]}
+              isDragEnabled={isDragEnabled}
             />
           </div>
 
