@@ -22,14 +22,14 @@ import { canRollDice, canMoveMarble as canMoveMarbleRule } from '@/lib/game/rule
 import { getValidMarbles } from '@/lib/game/moves';
 
 interface GamePlayPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function GamePlayPage({ params }: GamePlayPageProps) {
   const router = useRouter();
-  const gameId = params.id;
+  const { id: gameId } = React.use(params);
 
   const {
     gameState,

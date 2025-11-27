@@ -6,7 +6,7 @@
  * Shows players waiting for game to start, with share link and auto-start
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -18,14 +18,14 @@ import { setupLobbyChannel, unsubscribeChannel } from '@/lib/supabase/realtime';
 import type { Game, Player } from '@/types/game';
 
 interface GameLobbyPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function GameLobbyPage({ params }: GameLobbyPageProps) {
   const router = useRouter();
-  const gameId = params.id;
+  const { id: gameId } = use(params);
 
   const [game, setGame] = useState<Game | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -49,7 +49,17 @@ export default function GameLobbyPage({ params }: GameLobbyPageProps) {
       }
     } catch (err) {
       console.error('Failed to load game:', err);
-      setError('Failed to load game. Please check the game ID.');
+      console.error('Error details:', JSON.stringify(err, null, 2));
+      
+      // Provide more specific error messages
+      const errorObj = err as any;
+      if (errorObj?.code === 'PGRST116') {
+        setError('Game not found. The game may have expired or the ID is incorrect.');
+      } else if (errorObj?.message) {
+        setError(`Failed to load game: ${errorObj.message}`);
+      } else {
+        setError('Failed to load game. Please check the game ID and ensure database migrations are applied.');
+      }
     } finally {
       setIsLoading(false);
     }
