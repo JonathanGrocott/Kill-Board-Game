@@ -195,15 +195,15 @@
 
 ### Mobile Responsiveness
 
-- [ ] T085 [P] [US4] Add responsive breakpoints to tailwind.config.ts: mobile-first design, tablet (768px), desktop (1024px) per research.md
-- [ ] T086 [US4] Make Board component responsive in components/game/Board.tsx: scale SVG viewBox to fit screen width, maintain aspect ratio per spec.md FR-034
-- [ ] T087 [US4] Implement touch-friendly marble selection in components/game/Marble.tsx: minimum 44x44px touch target, visual feedback on tap per spec.md FR-035
-- [ ] T088 [US4] Optimize Dice component for mobile in components/game/Dice.tsx: larger touch target, prevent double-tap zoom per spec.md FR-033
+- [X] T085 [P] [US4] Add responsive breakpoints to tailwind.config.ts: mobile-first design, tablet (768px), desktop (1024px) per research.md
+- [X] T086 [US4] Make Board component responsive in components/game/Board.tsx: scale SVG viewBox to fit screen width, maintain aspect ratio per spec.md FR-034
+- [X] T087 [US4] Implement touch-friendly marble selection in components/game/Marble.tsx: minimum 44x44px touch target, visual feedback on tap per spec.md FR-035
+- [X] T088 [US4] Optimize Dice component for mobile in components/game/Dice.tsx: larger touch target, prevent double-tap zoom per spec.md FR-033
 
 ### Layout Adaptations
 
-- [ ] T089 [US4] Create mobile layout in app/game/[id]/play/page.tsx: board fills screen height, controls at bottom, landscape support per spec.md FR-036
-- [ ] T090 [US4] Add orientation detection in app/game/[id]/play/page.tsx: adjust board size for portrait vs landscape, CSS media queries per research.md
+- [X] T089 [US4] Create mobile layout in app/game/[id]/play/page.tsx: board fills screen height, controls at bottom, landscape support per spec.md FR-036
+- [X] T090 [US4] Add orientation detection in app/game/[id]/play/page.tsx: adjust board size for portrait vs landscape, CSS media queries per research.md
 - [ ] T091 [US4] Optimize PlayerList for mobile in components/lobby/PlayerList.tsx: horizontal scroll or compact vertical layout per spec.md FR-034
 - [ ] T092 [US4] Make VictoryScreen mobile-friendly in components/game/VictoryScreen.tsx: fullscreen modal, large text, easy-to-tap buttons per spec.md
 

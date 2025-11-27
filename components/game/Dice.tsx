@@ -21,7 +21,7 @@ export function Dice({ value, onRoll, disabled, isRolling }: DiceProps) {
   return (
     <div className="flex flex-col items-center gap-4">
       <motion.div
-        className="w-24 h-24 bg-white border-4 border-gray-800 rounded-xl shadow-lg flex items-center justify-center"
+        className="w-24 h-24 md:w-28 md:h-28 bg-white border-4 border-gray-800 rounded-xl shadow-lg flex items-center justify-center touch-target"
         animate={
           isRolling
             ? {
@@ -34,6 +34,7 @@ export function Dice({ value, onRoll, disabled, isRolling }: DiceProps) {
           duration: 0.6,
           ease: 'easeInOut',
         }}
+        style={{ touchAction: 'manipulation' }}
       >
         {value !== null ? (
           <DiceFace value={value} />
@@ -47,7 +48,7 @@ export function Dice({ value, onRoll, disabled, isRolling }: DiceProps) {
           onClick={onRoll}
           disabled={disabled || isRolling}
           size="lg"
-          className="w-full max-w-xs"
+          className="w-full max-w-xs min-h-[44px] text-base md:text-lg game-controls"
         >
           {isRolling ? 'Rolling...' : 'Roll Dice'}
         </Button>

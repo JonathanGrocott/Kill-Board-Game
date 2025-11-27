@@ -3,7 +3,16 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Mobile-first responsive breakpoints */
+@custom-media --mobile (width >= 640px);
+@custom-media --tablet (width >= 768px);
+@custom-media --desktop (width >= 1024px);
+@custom-media --wide (width >= 1280px);
+
+/* Touch-friendly spacing */
 @theme inline {
+  --spacing-touch-min: 44px; /* Minimum touch target size */
+  --spacing-touch-comfortable: 48px; /* Comfortable touch target */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
@@ -125,4 +134,59 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Prevent text selection on game elements for better touch UX */
+  .game-board,
+  .game-controls {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Prevent double-tap zoom on buttons */
+  button {
+    touch-action: manipulation;
+  }
 }
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  /* Ensure content fits mobile screens */
+  body {
+    overflow-x: hidden;
+  }
+  
+  /* Touch-friendly spacing */
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Landscape orientation optimizations for mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  /* Reduce header height to maximize board space */
+  .game-header {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  
+  /* Make board fill more horizontal space */
+  .game-board-container {
+    max-height: 85vh;
+  }
+  
+  /* Compact controls in landscape */
+  .game-controls {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}
+
+/* Portrait orientation - optimize vertical space */
+@media (max-width: 768px) and (orientation: portrait) {
+  .game-board-container {
+    max-height: 60vh;
+  }
+}
+

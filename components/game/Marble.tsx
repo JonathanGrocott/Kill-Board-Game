@@ -30,6 +30,9 @@ export function Marble({ marble, playerColor, isSelected, onClick }: MarbleProps
     marble.marble_number
   );
 
+  // Touch-friendly hit area (44x44px minimum)
+  const touchRadius = 22; // 44px diameter
+
   return (
     <motion.g
       initial={false}
@@ -44,9 +47,26 @@ export function Marble({ marble, playerColor, isSelected, onClick }: MarbleProps
         duration: 0.5,
       }}
       onClick={onClick}
+      onTouchEnd={(e) => {
+        if (onClick) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       style={{ cursor: onClick ? 'pointer' : 'default' }}
       className="marble"
     >
+      {/* Touch target (invisible, larger area) */}
+      {onClick && (
+        <circle
+          cx={0}
+          cy={0}
+          r={touchRadius}
+          fill="transparent"
+          className="touch-target"
+        />
+      )}
+
       {/* Marble shadow */}
       <circle
         cx={0}
@@ -54,6 +74,7 @@ export function Marble({ marble, playerColor, isSelected, onClick }: MarbleProps
         r={12}
         fill="black"
         opacity="0.2"
+        pointerEvents="none"
       />
 
       {/* Main marble */}
@@ -65,6 +86,7 @@ export function Marble({ marble, playerColor, isSelected, onClick }: MarbleProps
         stroke={isSelected ? '#FFD700' : '#333'}
         strokeWidth={isSelected ? 3 : 2}
         className="transition-all"
+        pointerEvents="none"
       />
 
       {/* Marble highlight */}
@@ -74,6 +96,7 @@ export function Marble({ marble, playerColor, isSelected, onClick }: MarbleProps
         r={4}
         fill="white"
         opacity="0.6"
+        pointerEvents="none"
       />
 
       {/* Selection ring */}
@@ -88,6 +111,7 @@ export function Marble({ marble, playerColor, isSelected, onClick }: MarbleProps
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.2 }}
+          pointerEvents="none"
         />
       )}
     </motion.g>

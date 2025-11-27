@@ -238,17 +238,18 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="flex-1 flex flex-col max-w-7xl mx-auto w-full">
         {/* Header with connection status */}
-        <div className="mb-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Game in Progress</h1>
+        <div className="game-header p-4 flex justify-between items-center border-b bg-white">
+          <h1 className="text-xl md:text-2xl font-bold">Game in Progress</h1>
           <ConnectionStatus status={connectionState} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Mobile layout: Board fills screen, controls at bottom */}
+        <div className="flex-1 flex flex-col lg:grid lg:grid-cols-3 lg:gap-6 lg:p-6">
           {/* Main game board */}
-          <div className="lg:col-span-2">
+          <div className="game-board-container flex-1 lg:col-span-2 flex items-center justify-center p-2 md:p-4">
             <Board
               marbles={gameState.marbles}
               players={gameState.players}
@@ -258,69 +259,101 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
             />
           </div>
 
-          {/* Game controls sidebar */}
-          <div className="space-y-4">
-            {/* Turn indicator */}
-            <TurnIndicator
-              currentPlayer={currentPlayer || null}
-              isYourTurn={isYourTurn}
-            />
-
-            {/* Turn timer */}
-            {gameState.game.status === 'active' && (
-              <TurnTimer
-                game={gameState.game}
+          {/* Game controls - bottom on mobile, sidebar on desktop */}
+          <div className="game-controls lg:space-y-4 bg-white border-t lg:border-t-0 lg:border-none">
+            <div className="p-4 space-y-3 lg:space-y-4">
+              {/* Turn indicator */}
+              <TurnIndicator
+                currentPlayer={currentPlayer || null}
                 isYourTurn={isYourTurn}
               />
-            )}
 
-            {/* Dice */}
-            <Dice
-              value={gameState.game.current_dice_roll}
-              onRoll={isYourTurn ? handleRollDice : undefined}
-              disabled={!isYourTurn || isLoading || !!gameState.game.current_dice_roll}
-              isRolling={isRolling}
-            />
+              {/* Turn timer */}
+              {gameState.game.status === 'active' && (
+                <TurnTimer
+                  game={gameState.game}
+                  isYourTurn={isYourTurn}
+                />
+              )}
 
-            {/* Player status */}
-            <div className="bg-white rounded-lg p-4 shadow">
-              <h3 className="font-semibold mb-3">Players</h3>
-              <div className="space-y-2">
+              {/* Dice */}
+              <Dice
+                value={gameState.game.current_dice_roll}
+                onRoll={isYourTurn ? handleRollDice : undefined}
+                disabled={!isYourTurn || isLoading || !!gameState.game.current_dice_roll}
+                isRolling={isRolling}
+              />
+
+              {/* Player status */}
+              <div className="bg-white rounded-lg p-4 shadow hidden lg:block">
+                <h3 className="font-semibold mb-3">Players</h3>
+                <div className="space-y-2">
+                  {gameState.players.map((player) => (
+                    <div
+                      key={player.id}
+                      className="flex items-center justify-between p-2 rounded"
+                      style={{
+                        backgroundColor: player.id === currentPlayer?.id
+                          ? `var(--color-player-${player.color})`
+                          : 'transparent',
+                        opacity: player.id === currentPlayer?.id ? 0.2 : 1,
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: `var(--color-player-${player.color})` }}
+                        />
+                        <span className="text-sm font-medium">
+                          {player.display_name}
+                          {player.is_bot && ' (Bot)'}
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-600">
+                        {player.marbles_home}/4 home
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Error display */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-800 text-sm">{error}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Mobile player status - compact horizontal */}
+            <div className="lg:hidden px-4 pb-3 bg-white border-t border-gray-200">
+              <div className="flex gap-3 overflow-x-auto py-2">
                 {gameState.players.map((player) => (
                   <div
                     key={player.id}
-                    className="flex items-center justify-between p-2 rounded"
+                    className="flex items-center gap-2 px-3 py-2 rounded-full whitespace-nowrap"
                     style={{
                       backgroundColor: player.id === currentPlayer?.id
                         ? `var(--color-player-${player.color})`
-                        : 'transparent',
-                      opacity: player.id === currentPlayer?.id ? 0.2 : 1,
+                        : '#f3f4f6',
+                      opacity: player.id === currentPlayer?.id ? 0.3 : 1,
                     }}
                   >
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: `var(--color-player-${player.color})` }}
-                      />
-                      <span className="text-sm font-medium">
-                        {player.display_name}
-                        {player.is_bot && ' (Bot)'}
-                      </span>
-                    </div>
+                    <div
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: `var(--color-player-${player.color})` }}
+                    />
+                    <span className="text-sm font-medium">
+                      {player.display_name.split(' ')[0]}
+                      {player.is_bot && ' 🤖'}
+                    </span>
                     <span className="text-xs text-gray-600">
-                      {player.marbles_home}/4 home
+                      {player.marbles_home}/4
                     </span>
                   </div>
                 ))}
               </div>
             </div>
-
-            {/* Error display */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-800 text-sm">{error}</p>
-              </div>
-            )}
           </div>
         </div>
       </div>

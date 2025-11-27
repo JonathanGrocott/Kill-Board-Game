@@ -34,11 +34,12 @@ export function Board({
   const centerY = boardSize / 2;
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto aspect-square">
+    <div className="relative w-full mx-auto aspect-square max-w-4xl game-board">
       <svg
         viewBox={`0 0 ${boardSize} ${boardSize}`}
-        className="w-full h-full"
+        className="w-full h-full touch-none"
         xmlns="http://www.w3.org/2000/svg"
+        preserveAspectRatio="xMidYMid meet"
       >
         {/* Board background */}
         <rect width={boardSize} height={boardSize} fill="#F5F5DC" />
