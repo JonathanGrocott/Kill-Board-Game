@@ -10,7 +10,7 @@
  * - Click interactions
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import type { Marble as MarbleType, PlayerColor } from '@/types/game';
 import { getMarbleCoordinates } from '@/lib/game/board';
@@ -22,7 +22,7 @@ interface MarbleProps {
   onClick?: () => void;
 }
 
-export function Marble({ marble, playerColor, isSelected, onClick }: MarbleProps) {
+function MarbleComponent({ marble, playerColor, isSelected, onClick }: MarbleProps) {
   const coords = getMarbleCoordinates(
     marble.position_type,
     marble.position_index,
@@ -117,3 +117,16 @@ export function Marble({ marble, playerColor, isSelected, onClick }: MarbleProps
     </motion.g>
   );
 }
+
+// Memoize to prevent unnecessary re-renders when position unchanged
+export const Marble = memo(MarbleComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.marble.id === nextProps.marble.id &&
+    prevProps.marble.position_type === nextProps.marble.position_type &&
+    prevProps.marble.position_index === nextProps.marble.position_index &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.playerColor === nextProps.playerColor
+  );
+});
+
+Marble.displayName = 'Marble';

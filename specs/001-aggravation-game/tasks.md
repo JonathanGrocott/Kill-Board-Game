@@ -290,14 +290,14 @@
 
 ### Performance Optimization
 
-- [ ] T119 [P] Add React.memo to Marble component in components/game/Marble.tsx: prevent re-renders when position unchanged per research.md performance
+- [X] T119 [P] Add React.memo to Marble component in components/game/Marble.tsx: prevent re-renders when position unchanged per research.md performance
 - [ ] T120 [P] Optimize Board SVG rendering in components/game/Board.tsx: reduce DOM nodes, use CSS transforms for animations per spec.md SC-012
 - [ ] T121 Implement code splitting in app/ pages: use Next.js dynamic imports for heavy components (Board, VictoryScreen) per research.md Next.js features
-- [ ] T122 Add loading states in app/game/[id]/loading.tsx: skeleton UI while game data loads per plan.md UX consistency
+- [X] T122 Add loading states in app/game/[id]/loading.tsx: skeleton UI while game data loads per plan.md UX consistency
 
 ### Error Handling
 
-- [ ] T123 [P] Create error boundaries in app/error.tsx and app/game/[id]/error.tsx: catch React errors, show user-friendly messages per plan.md code quality
+- [X] T123 [P] Create error boundaries in app/error.tsx and app/game/[id]/error.tsx: catch React errors, show user-friendly messages per plan.md code quality
 - [ ] T124 [P] Add user-facing error messages in lib/utils/errors.ts: map Supabase errors to actionable text (e.g., "Game is full" instead of "GAME_FULL") per spec.md FR-026
 - [ ] T125 Implement retry logic in lib/supabase/client.ts: auto-retry failed RPC calls up to 3 times per plan.md performance requirements
 

@@ -15,6 +15,7 @@ interface AddBotButtonProps {
   currentPlayerCount: number;
   maxPlayers: number;
   disabled?: boolean;
+  onBotAdded?: () => void;
 }
 
 export function AddBotButton({
@@ -22,6 +23,7 @@ export function AddBotButton({
   currentPlayerCount,
   maxPlayers,
   disabled,
+  onBotAdded,
 }: AddBotButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -39,6 +41,11 @@ export function AddBotButton({
 
       if (rpcError) {
         throw rpcError;
+      }
+
+      // Trigger callback to refresh game state
+      if (onBotAdded) {
+        onBotAdded();
       }
     } catch (err) {
       console.error('Failed to add bot:', err);

@@ -174,7 +174,36 @@ export default function GameLobbyPage({ params }: GameLobbyPageProps) {
               currentPlayerCount={players.length}
               maxPlayers={game.num_players}
               disabled={game.status !== 'waiting'}
+              onBotAdded={loadGameData}
             />
+
+            {/* Manual Start Game Button (for testing with bots) */}
+            {players.length >= 2 && game.status === 'waiting' && isHost && (
+              <Button
+                onClick={async () => {
+                  try {
+                    const firstPlayer = players.find(p => p.position_order === 1);
+                    if (!firstPlayer) return;
+
+                    const { error } = await supabase
+                      .from('game_sessions')
+                      .update({
+                        status: 'active',
+                        current_turn_player_id: firstPlayer.id,
+                        turn_started_at: new Date().toISOString(),
+                      })
+                      .eq('id', gameId);
+
+                    if (error) throw error;
+                  } catch (err) {
+                    console.error('Failed to start game:', err);
+                  }
+                }}
+                className="w-full"
+              >
+                Start Game ({players.length} Players)
+              </Button>
+            )}
 
             <Button
               onClick={() => router.push('/')}

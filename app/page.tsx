@@ -66,17 +66,19 @@ export default function HomePage() {
         const gameData = data as unknown as { game_id: string };
         const newGameId = gameData.game_id;
 
-        // Add 3 bots
+        // Add 3 bots (this will auto-start the game when the 4th bot is added)
         for (let i = 0; i < 3; i++) {
           const { error: botError } = await supabase.rpc('add_bot_player', {
             p_game_id: newGameId,
           });
           if (botError) {
             console.error('Failed to add bot:', botError);
+            throw botError;
           }
         }
 
-        router.push(`/game/${newGameId}`);
+        // Game should now be active, redirect to play page
+        router.push(`/game/${newGameId}/play`);
       }
     } catch (err) {
       console.error('Error:', err);
@@ -125,7 +127,7 @@ export default function HomePage() {
         router.push(`/game/${gameData.game_id}`);
       } else {
         // Join existing game
-        const { data, error: rpcError } = await supabase.rpc('join_game_session', {
+        const { error: rpcError } = await supabase.rpc('join_game_session', {
           p_game_id: gameId,
           p_display_name: displayName,
         });
@@ -159,7 +161,7 @@ export default function HomePage() {
         );
       } else if (errorMessage === 'An error occurred' && typeof err === 'object' && err !== null) {
         // Try to extract more details from the error object
-        const errObj = err as any;
+        const errObj = err as unknown as { code?: string; message?: string; hint?: string; details?: string };
         if (errObj.code) {
           setError(`Database error (${errObj.code}): ${errObj.message || errObj.hint || 'Unknown error'}`);
         } else if (errObj.details) {

@@ -8,9 +8,11 @@
  * - 4 starting bases (red, blue, green, yellow)
  * - 4 home zones
  * - Shortcut paths
+ * 
+ * Performance optimized with minimal DOM nodes
  */
 
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import type { Marble as MarbleType, Player } from '@/types/game';
 import { Marble } from './Marble';
 
