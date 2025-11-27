@@ -29,7 +29,7 @@ CREATE TABLE game_sessions (
   
   -- Session Management (FR-018: 24-hour cleanup)
   last_activity_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  auto_delete_at TIMESTAMPTZ GENERATED ALWAYS AS (last_activity_at + INTERVAL '24 hours') STORED,
+  auto_delete_at TIMESTAMPTZ NOT NULL DEFAULT (now() + INTERVAL '24 hours'),
   
   -- Winner Tracking
   winner_player_id UUID,
@@ -212,6 +212,20 @@ CREATE POLICY "Players can view game history"
 -- ============================================================================
 -- TRIGGER FUNCTIONS
 -- ============================================================================
+
+-- Update auto_delete_at whenever last_activity_at changes
+CREATE OR REPLACE FUNCTION update_auto_delete_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.auto_delete_at := NEW.last_activity_at + INTERVAL '24 hours';
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_auto_delete_at
+  BEFORE UPDATE OF last_activity_at ON game_sessions
+  FOR EACH ROW
+  EXECUTE FUNCTION update_auto_delete_at();
 
 -- Update Trigger Function
 -- Automatically updates updated_at column on row updates

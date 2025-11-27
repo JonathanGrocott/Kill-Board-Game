@@ -21,16 +21,16 @@
 
 **Purpose**: Initialize Next.js 15 project with TypeScript, Tailwind CSS, and Supabase
 
-- [ ] T001 Initialize Next.js 15 project with TypeScript in repository root via `npx create-next-app@latest . --typescript --tailwind --app --no-src-dir`
-- [ ] T002 Install core dependencies: `npm install @supabase/supabase-js@latest @supabase/ssr framer-motion zustand`
-- [ ] T003 [P] Install development dependencies: `npm install -D @types/node vitest @vitest/ui @playwright/test`
-- [ ] T004 [P] Configure TypeScript strict mode in tsconfig.json with paths for lib/, components/, hooks/, types/
-- [ ] T005 [P] Initialize Supabase CLI project via `npx supabase init` to create supabase/ directory
-- [ ] T006 [P] Setup Tailwind CSS config in tailwind.config.ts with custom theme colors for 4-player game (red, blue, green, yellow)
-- [ ] T007 Create .env.local.example template with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY placeholders
-- [ ] T008 Setup shadcn/ui via `npx shadcn-ui@latest init` and configure components.json for Tailwind integration
-- [ ] T009 [P] Create project directory structure: app/, components/, lib/, hooks/, types/, supabase/, tests/ per plan.md
-- [ ] T010 [P] Setup ESLint and Prettier configs in .eslintrc.json and .prettierrc with Next.js and TypeScript rules
+- [X] T001 Initialize Next.js 15 project with TypeScript in repository root via `npx create-next-app@latest . --typescript --tailwind --app --no-src-dir`
+- [X] T002 Install core dependencies: `npm install @supabase/supabase-js@latest @supabase/ssr framer-motion zustand`
+- [X] T003 [P] Install development dependencies: `npm install -D @types/node vitest @vitest/ui @playwright/test`
+- [X] T004 [P] Configure TypeScript strict mode in tsconfig.json with paths for lib/, components/, hooks/, types/
+- [X] T005 [P] Initialize Supabase CLI project via `npx supabase init` to create supabase/ directory
+- [X] T006 [P] Setup Tailwind CSS config in tailwind.config.ts with custom theme colors for 4-player game (red, blue, green, yellow)
+- [X] T007 Create .env.local.example template with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY placeholders
+- [X] T008 Setup shadcn/ui via `npx shadcn-ui@latest init` and configure components.json for Tailwind integration
+- [X] T009 [P] Create project directory structure: app/, components/, lib/, hooks/, types/, supabase/, tests/ per plan.md
+- [X] T010 [P] Setup ESLint and Prettier configs in .eslintrc.json and .prettierrc with Next.js and TypeScript rules
 
 **Checkpoint**: Basic Next.js project initialized with TypeScript, Tailwind, Supabase CLI, and folder structure
 
@@ -42,28 +42,28 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T011 Create database migration 001_initial_schema.sql in supabase/migrations/ with game_sessions, players, marbles, move_history tables per data-model.md
-- [ ] T012 Add database indexes to migration: idx_game_sessions_auto_delete, idx_game_sessions_status, idx_players_game_session, idx_players_user_id, idx_marbles_position per data-model.md
-- [ ] T013 Add Row Level Security policies to migration: game_sessions (view, create, update), players (view), marbles (view, update) per data-model.md
-- [ ] T014 Create update_updated_at_column() trigger function in migration for game_sessions.updated_at per data-model.md
-- [ ] T015 Create check_turn_timeout() function in supabase/migrations/002_turn_functions.sql for 60-second turn timer validation per data-model.md
-- [ ] T016 Create generate_bot_move() function in supabase/migrations/002_turn_functions.sql for random valid marble selection per data-model.md
-- [ ] T017 Create create_game_session() RPC function in supabase/migrations/003_rpc_game_management.sql per contracts/rpc-functions.md
-- [ ] T018 [P] Create join_game_session() RPC function in supabase/migrations/003_rpc_game_management.sql per contracts/rpc-functions.md
-- [ ] T019 [P] Create add_bot_player() RPC function in supabase/migrations/003_rpc_game_management.sql per contracts/rpc-functions.md
-- [ ] T020 Create roll_dice() RPC function in supabase/migrations/004_rpc_turn_execution.sql per contracts/rpc-functions.md
-- [ ] T021 Create move_marble() RPC function in supabase/migrations/004_rpc_turn_execution.sql with position calculation and collision detection per contracts/rpc-functions.md
-- [ ] T022 [P] Create pass_turn() RPC function in supabase/migrations/004_rpc_turn_execution.sql per contracts/rpc-functions.md
-- [ ] T023 [P] Create execute_bot_turn() RPC function in supabase/migrations/004_rpc_turn_execution.sql per contracts/rpc-functions.md
-- [ ] T024 [P] Create get_game_state() RPC function in supabase/migrations/005_rpc_utilities.sql per contracts/rpc-functions.md
-- [ ] T025 [P] Create update_player_presence() RPC function in supabase/migrations/005_rpc_utilities.sql per contracts/rpc-functions.md
-- [ ] T026 Apply migrations locally via `npx supabase db reset` to create schema
-- [ ] T027 Generate TypeScript types from Supabase schema via `npx supabase gen types typescript --local > lib/supabase/database.types.ts`
-- [ ] T028 Create Supabase client (browser) in lib/supabase/client.ts with createBrowserClient from @supabase/ssr per quickstart.md
-- [ ] T029 [P] Create Supabase client (server) in lib/supabase/server.ts with createServerClient from @supabase/ssr per quickstart.md
-- [ ] T030 [P] Setup Supabase Auth guest mode helpers in lib/auth/guest.ts for anonymous sign-in with display_name metadata per research.md
-- [ ] T031 Create base TypeScript types in types/game.ts: Game, Player, Marble, GameStatus, PlayerColor, PositionType enums per data-model.md
-- [ ] T032 [P] Create error handling utilities in lib/utils/errors.ts for user-friendly Supabase error messages per plan.md
+- [X] T011 Create database migration 001_initial_schema.sql in supabase/migrations/ with game_sessions, players, marbles, move_history tables per data-model.md
+- [X] T012 Add database indexes to migration: idx_game_sessions_auto_delete, idx_game_sessions_status, idx_players_game_session, idx_players_user_id, idx_marbles_position per data-model.md
+- [X] T013 Add Row Level Security policies to migration: game_sessions (view, create, update), players (view), marbles (view, update) per data-model.md
+- [X] T014 Create update_updated_at_column() trigger function in migration for game_sessions.updated_at per data-model.md
+- [X] T015 Create check_turn_timeout() function in supabase/migrations/002_turn_functions.sql for 60-second turn timer validation per data-model.md
+- [X] T016 Create generate_bot_move() function in supabase/migrations/002_turn_functions.sql for random valid marble selection per data-model.md
+- [X] T017 Create create_game_session() RPC function in supabase/migrations/003_rpc_game_management.sql per contracts/rpc-functions.md
+- [X] T018 [P] Create join_game_session() RPC function in supabase/migrations/003_rpc_game_management.sql per contracts/rpc-functions.md
+- [X] T019 [P] Create add_bot_player() RPC function in supabase/migrations/003_rpc_game_management.sql per contracts/rpc-functions.md
+- [X] T020 Create roll_dice() RPC function in supabase/migrations/004_rpc_turn_execution.sql per contracts/rpc-functions.md
+- [X] T021 Create move_marble() RPC function in supabase/migrations/004_rpc_turn_execution.sql with position calculation and collision detection per contracts/rpc-functions.md
+- [X] T022 [P] Create pass_turn() RPC function in supabase/migrations/004_rpc_turn_execution.sql per contracts/rpc-functions.md
+- [X] T023 [P] Create execute_bot_turn() RPC function in supabase/migrations/004_rpc_turn_execution.sql per contracts/rpc-functions.md
+- [X] T024 [P] Create get_game_state() RPC function in supabase/migrations/005_rpc_utilities.sql per contracts/rpc-functions.md
+- [X] T025 [P] Create update_player_presence() RPC function in supabase/migrations/005_rpc_utilities.sql per contracts/rpc-functions.md
+- [X] T026 Apply migrations locally via `npx supabase db reset` to create schema
+- [X] T027 Generate TypeScript types from Supabase schema via `npx supabase gen types typescript --local > lib/supabase/database.types.ts`
+- [X] T028 Create Supabase client (browser) in lib/supabase/client.ts with createBrowserClient from @supabase/ssr per quickstart.md
+- [X] T029 [P] Create Supabase client (server) in lib/supabase/server.ts with createServerClient from @supabase/ssr per quickstart.md
+- [X] T030 [P] Setup Supabase Auth guest mode helpers in lib/auth/guest.ts for anonymous sign-in with display_name metadata per research.md
+- [X] T031 Create base TypeScript types in types/game.ts: Game, Player, Marble, GameStatus, PlayerColor, PositionType enums per data-model.md
+- [X] T032 [P] Create error handling utilities in lib/utils/errors.ts for user-friendly Supabase error messages per plan.md
 
 **Checkpoint**: Database schema complete, RPC functions deployed, TypeScript types generated, Supabase clients configured
 
@@ -77,36 +77,36 @@
 
 ### Game Logic & Rules
 
-- [ ] T033 [P] [US1] Implement board position calculations in lib/game/board.ts: main track (0-67), shortcut entry/exit, home zone coordinates per data-model.md
-- [ ] T034 [P] [US1] Implement move validation logic in lib/game/moves.ts: valid marble selection based on dice roll, base exit (1 or 6), exact home entry per spec.md FR-002
-- [ ] T035 [US1] Implement game rules engine in lib/game/rules.ts: turn order, capture logic (send to base), shortcut eligibility (after 1 lap), win condition (4 marbles home) per spec.md FR-001
-- [ ] T036 [US1] Create position calculation helper in lib/game/board.ts: calculate new position given current position + dice roll, handle track wraparound and shortcut transitions per data-model.md
+- [X] T033 [P] [US1] Implement board position calculations in lib/game/board.ts: main track (0-67), shortcut entry/exit, home zone coordinates per data-model.md
+- [X] T034 [P] [US1] Implement move validation logic in lib/game/moves.ts: valid marble selection based on dice roll, base exit (1 or 6), exact home entry per spec.md FR-002
+- [X] T035 [US1] Implement game rules engine in lib/game/rules.ts: turn order, capture logic (send to base), shortcut eligibility (after 1 lap), win condition (4 marbles home) per spec.md FR-001
+- [X] T036 [US1] Create position calculation helper in lib/game/board.ts: calculate new position given current position + dice roll, handle track wraparound and shortcut transitions per data-model.md
 
 ### Core UI Components
 
-- [ ] T037 [P] [US1] Install shadcn/ui Button component via `npx shadcn-ui@latest add button` and customize for game actions in components/ui/button.tsx
-- [ ] T038 [P] [US1] Install shadcn/ui Card component via `npx shadcn-ui@latest add card` for player cards and game board container in components/ui/card.tsx
-- [ ] T039 [US1] Create Board component in components/game/Board.tsx: SVG game board with 68 track spaces, 4 home zones, 4 starting bases, shortcuts per spec.md FR-024
-- [ ] T040 [US1] Create Marble component in components/game/Marble.tsx: individual marble SVG with Framer Motion position animations, player color styling per spec.md FR-026
-- [ ] T041 [US1] Create Dice component in components/game/Dice.tsx: animated dice roll display (1-6), onClick handler to trigger roll_dice RPC per spec.md FR-025
-- [ ] T042 [P] [US1] Create TurnIndicator component in components/game/TurnIndicator.tsx: shows current player name and color, "Your Turn" highlight per spec.md FR-028
-- [ ] T043 [P] [US1] Create TurnTimer component in components/game/TurnTimer.tsx: 60-second countdown, 10-second warning animation per spec.md FR-030
+- [X] T037 [P] [US1] Install shadcn/ui Button component via `npx shadcn-ui@latest add button` and customize for game actions in components/ui/button.tsx
+- [X] T038 [P] [US1] Install shadcn/ui Card component via `npx shadcn-ui@latest add card` for player cards and game board container in components/ui/card.tsx
+- [X] T039 [US1] Create Board component in components/game/Board.tsx: SVG game board with 68 track spaces, 4 home zones, 4 starting bases, shortcuts per spec.md FR-024
+- [X] T040 [US1] Create Marble component in components/game/Marble.tsx: individual marble SVG with Framer Motion position animations, player color styling per spec.md FR-026
+- [X] T041 [US1] Create Dice component in components/game/Dice.tsx: animated dice roll display (1-6), onClick handler to trigger roll_dice RPC per spec.md FR-025
+- [X] T042 [P] [US1] Create TurnIndicator component in components/game/TurnIndicator.tsx: shows current player name and color, "Your Turn" highlight per spec.md FR-028
+- [X] T043 [P] [US1] Create TurnTimer component in components/game/TurnTimer.tsx: 60-second countdown, 10-second warning animation per spec.md FR-030
 
 ### Game State Management
 
-- [ ] T044 [US1] Create useGameState hook in hooks/useGameState.ts: manages local game state (selected marble, highlighted spaces), calls Supabase RPC functions per plan.md
-- [ ] T045 [US1] Create useRealtimeSync hook in hooks/useRealtimeSync.ts: subscribes to game:{gameId} channel for marble moves, turn changes, dice rolls per contracts/realtime-channels.md
-- [ ] T046 [US1] Implement Realtime channel setup in lib/supabase/realtime.ts: helper functions for lobby, game, and turn channels per contracts/realtime-channels.md
+- [X] T044 [US1] Create useGameState hook in hooks/useGameState.ts: manages local game state (selected marble, highlighted spaces), calls Supabase RPC functions per plan.md
+- [X] T045 [US1] Create useRealtimeSync hook in hooks/useRealtimeSync.ts: subscribes to game:{gameId} channel for marble moves, turn changes, dice rolls per contracts/realtime-channels.md
+- [X] T046 [US1] Implement Realtime channel setup in lib/supabase/realtime.ts: helper functions for lobby, game, and turn channels per contracts/realtime-channels.md
 
 ### Game Page Implementation
 
-- [ ] T047 [US1] Create game play page in app/game/[id]/play/page.tsx: renders Board, Dice, TurnIndicator, TurnTimer, subscribes to Realtime, handles user interactions per plan.md
-- [ ] T048 [US1] Implement dice roll handler in app/game/[id]/play/page.tsx: calls roll_dice RPC, broadcasts dice_rolled event, updates UI with valid marbles per contracts/rpc-functions.md
-- [ ] T049 [US1] Implement marble selection handler in app/game/[id]/play/page.tsx: highlights selected marble, shows valid destination spaces, calls move_marble RPC per spec.md FR-027
-- [ ] T050 [US1] Implement marble move animation in components/game/Marble.tsx: Framer Motion layout animation from old position to new position, 500ms duration per research.md
-- [ ] T051 [US1] Implement capture animation in components/game/Board.tsx: show captured marble returning to base with bounce effect per spec.md acceptance scenario 1.4
-- [ ] T052 [US1] Create VictoryScreen component in components/game/VictoryScreen.tsx: displays winner name/color, confetti animation, "New Game" button per spec.md FR-032
-- [ ] T053 [US1] Implement win condition detection in app/game/[id]/play/page.tsx: listen for game.status = 'completed', show VictoryScreen modal per spec.md FR-005
+- [X] T047 [US1] Create game play page in app/game/[id]/play/page.tsx: renders Board, Dice, TurnIndicator, TurnTimer, subscribes to Realtime, handles user interactions per plan.md
+- [X] T048 [US1] Implement dice roll handler in app/game/[id]/play/page.tsx: calls roll_dice RPC, broadcasts dice_rolled event, updates UI with valid marbles per contracts/rpc-functions.md
+- [X] T049 [US1] Implement marble selection handler in app/game/[id]/play/page.tsx: highlights selected marble, shows valid destination spaces, calls move_marble RPC per spec.md FR-027
+- [X] T050 [US1] Implement marble move animation in components/game/Marble.tsx: Framer Motion layout animation from old position to new position, 500ms duration per research.md
+- [X] T051 [US1] Implement capture animation in components/game/Board.tsx: show captured marble returning to base with bounce effect per spec.md acceptance scenario 1.4
+- [X] T052 [US1] Create VictoryScreen component in components/game/VictoryScreen.tsx: displays winner name/color, confetti animation, "New Game" button per spec.md FR-032
+- [X] T053 [US1] Implement win condition detection in app/game/[id]/play/page.tsx: listen for game.status = 'completed', show VictoryScreen modal per spec.md FR-005
 
 ### Game Flow Integration
 
