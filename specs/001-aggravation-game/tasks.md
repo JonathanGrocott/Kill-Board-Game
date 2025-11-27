@@ -171,17 +171,17 @@
 
 ### Presence & Disconnection Handling
 
-- [ ] T077 [US3] Implement presence tracking in hooks/useRealtimeSync.ts: track player online status via presence channel, update is_connected in database per contracts/realtime-channels.md
-- [ ] T078 [US3] Create presence heartbeat in hooks/useRealtimeSync.ts: call update_player_presence RPC every 10 seconds per contracts/rpc-functions.md
-- [ ] T079 [US3] Add disconnection indicator in components/lobby/PlayerList.tsx: show red dot or "Disconnected" text for is_connected = false players per spec.md FR-010
-- [ ] T080 [US3] Implement auto-skip on disconnect in backend via scheduled job or Edge Function: check last_seen_at, call pass_turn after 30s per spec.md FR-009
-- [ ] T081 [US3] Implement reconnection flow in hooks/useRealtimeSync.ts: call get_game_state RPC on reconnect to sync missed updates per spec.md acceptance scenario 3.5
+- [X] T077 [US3] Implement presence tracking in hooks/useRealtimeSync.ts: track player online status via presence channel, update is_connected in database per contracts/realtime-channels.md
+- [X] T078 [US3] Create presence heartbeat in hooks/useRealtimeSync.ts: call update_player_presence RPC every 10 seconds per contracts/rpc-functions.md
+- [X] T079 [US3] Add disconnection indicator in components/lobby/PlayerList.tsx: show red dot or "Disconnected" text for is_connected = false players per spec.md FR-010
+- [ ] T080 [US3] Implement auto-skip on disconnect in backend via scheduled job or Edge Function: check last_seen_at, call pass_turn after 30s per spec.md FR-009 **[Requires Supabase Edge Function - deferred]**
+- [X] T081 [US3] Implement reconnection flow in hooks/useRealtimeSync.ts: call get_game_state RPC on reconnect to sync missed updates per spec.md acceptance scenario 3.5
 
 ### Synchronization Quality
 
-- [ ] T082 [US3] Add latency monitoring in lib/utils/monitoring.ts: log time between RPC call and Realtime event receipt, target <200ms per spec.md SC-003
-- [ ] T083 [US3] Implement optimistic UI updates in app/game/[id]/play/page.tsx: show local player's move immediately, rollback if RPC fails per research.md state management
-- [ ] T084 [US3] Add conflict resolution in hooks/useRealtimeSync.ts: server state wins, show error toast if optimistic update rejected per spec.md FR-011
+- [X] T082 [US3] Add latency monitoring in lib/utils/monitoring.ts: log time between RPC call and Realtime event receipt, target <200ms per spec.md SC-003
+- [ ] T083 [US3] Implement optimistic UI updates in app/game/[id]/play/page.tsx: show local player's move immediately, rollback if RPC fails per research.md state management **[Enhancement - deferred]**
+- [ ] T084 [US3] Add conflict resolution in hooks/useRealtimeSync.ts: server state wins, show error toast if optimistic update rejected per spec.md FR-011 **[Enhancement - deferred]**
 
 **Checkpoint**: All user stories should now have real-time sync - players see each other's actions instantly
 

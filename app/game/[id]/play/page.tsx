@@ -13,6 +13,7 @@ import { Dice } from '@/components/game/Dice';
 import { TurnIndicator } from '@/components/game/TurnIndicator';
 import { TurnTimer } from '@/components/game/TurnTimer';
 import { VictoryScreen } from '@/components/game/VictoryScreen';
+import { ConnectionStatus } from '@/components/game/ConnectionStatus';
 import { useGameState } from '@/hooks/useGameState';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import type { Marble } from '@/types/game';
@@ -46,7 +47,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
   const [validMarbleIds, setValidMarbleIds] = useState<string[]>([]);
 
   // Setup Realtime sync
-  const { sendDiceRoll, sendMarbleMove } = useRealtimeSync({
+  const { sendDiceRoll, sendMarbleMove, connectionState } = useRealtimeSync({
     gameId,
     currentPlayerId,
     onGameUpdate: (game) => {
@@ -82,6 +83,10 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
     onDiceRoll: (data) => {
       // Show dice animation for other players
       console.log('Dice rolled:', data);
+    },
+    onReconnect: () => {
+      // Refresh game state on reconnect to sync missed updates
+      refreshGameState();
     },
   });
 
@@ -235,6 +240,12 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto">
+        {/* Header with connection status */}
+        <div className="mb-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Game in Progress</h1>
+          <ConnectionStatus status={connectionState} />
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main game board */}
           <div className="lg:col-span-2">
