@@ -5,76 +5,108 @@ export class GameError extends Error {
   constructor(
     message: string,
     public code?: string,
-    public details?: unknown
+    public details?: unknown,
+    public isRetryable: boolean = false
   ) {
     super(message);
     this.name = 'GameError';
   }
 }
 
+/**
+ * Map Supabase/Postgres error codes to user-friendly messages
+ */
+const ERROR_MESSAGES: Record<string, { message: string; retryable: boolean }> = {
+  GAME_NOT_FOUND: { message: 'Game not found. Please check the game ID.', retryable: false },
+  GAME_FULL: { message: 'This game is already full.', retryable: false },
+  GAME_STARTED: { message: 'This game has already started.', retryable: false },
+  GAME_NOT_ACTIVE: { message: 'This game is not active.', retryable: false },
+  NOT_YOUR_TURN: { message: "It's not your turn yet.", retryable: false },
+  NOT_A_BOT: { message: 'This action is only available for bot players.', retryable: false },
+  ALREADY_ROLLED: { message: 'You have already rolled the dice this turn.', retryable: false },
+  NO_DICE_ROLL: { message: 'Please roll the dice first.', retryable: false },
+  INVALID_MARBLE: { message: 'Invalid marble selection.', retryable: false },
+  INVALID_MOVE: { message: 'Invalid move. Check the game rules and try again.', retryable: false },
+  INVALID_NAME: { message: 'Display name must be between 1 and 50 characters.', retryable: false },
+  INVALID_PLAYER_COUNT: { message: 'Number of players must be 2, 3, or 4.', retryable: false },
+  INVALID_COLOR: { message: 'Invalid player color.', retryable: false },
+  // Network/connection errors are retryable
+  PGRST301: { message: 'Connection error. Please check your internet connection.', retryable: true },
+  PGRST502: { message: 'Server is temporarily unavailable. Please try again.', retryable: true },
+  NETWORK_ERROR: { message: 'Network error. Please check your connection and try again.', retryable: true },
+  TIMEOUT: { message: 'Request timed out. Please try again.', retryable: true },
+};
+
 export function handleSupabaseError(error: unknown): GameError {
+  // Handle Supabase RPC error object format
+  if (error && typeof error === 'object') {
+    const err = error as Record<string, unknown>;
+    
+    // Supabase error objects have message, code, details, hint properties
+    const message = (err.message as string) || '';
+    const code = (err.code as string) || '';
+    const details = (err.details as string) || '';
+    const hint = (err.hint as string) || '';
+    
+    // Check for known error codes in message or details
+    const errorText = `${message} ${details} ${hint} ${code}`;
+    
+    for (const [errorCode, config] of Object.entries(ERROR_MESSAGES)) {
+      if (errorText.includes(errorCode)) {
+        return new GameError(config.message, errorCode, error, config.retryable);
+      }
+    }
+    
+    // Return the message if available, otherwise a generic message
+    if (message) {
+      return new GameError(message, code || 'UNKNOWN_ERROR', error, false);
+    }
+  }
+  
   if (error instanceof Error) {
     const message = error.message;
 
-    // Map Supabase/Postgres errors to user-friendly messages
-    if (message.includes('GAME_NOT_FOUND')) {
-      return new GameError('Game not found. Please check the game ID.', 'GAME_NOT_FOUND');
+    // Check for known error codes
+    for (const [code, config] of Object.entries(ERROR_MESSAGES)) {
+      if (message.includes(code)) {
+        return new GameError(config.message, code, error, config.retryable);
+      }
     }
 
-    if (message.includes('GAME_FULL')) {
-      return new GameError('This game is already full.', 'GAME_FULL');
-    }
-
-    if (message.includes('GAME_STARTED')) {
-      return new GameError('This game has already started.', 'GAME_STARTED');
-    }
-
-    if (message.includes('GAME_NOT_ACTIVE')) {
-      return new GameError('This game is not active.', 'GAME_NOT_ACTIVE');
-    }
-
-    if (message.includes('NOT_YOUR_TURN')) {
-      return new GameError("It's not your turn yet.", 'NOT_YOUR_TURN');
-    }
-
-    if (message.includes('ALREADY_ROLLED')) {
-      return new GameError('You have already rolled the dice this turn.', 'ALREADY_ROLLED');
-    }
-
-    if (message.includes('NO_DICE_ROLL')) {
-      return new GameError('Please roll the dice first.', 'NO_DICE_ROLL');
-    }
-
-    if (message.includes('INVALID_MARBLE')) {
-      return new GameError('Invalid marble selection.', 'INVALID_MARBLE');
-    }
-
-    if (message.includes('INVALID_MOVE')) {
+    // Check for network errors
+    if (message.includes('fetch') || message.includes('network') || message.includes('Failed to fetch')) {
       return new GameError(
-        'Invalid move. Check the game rules and try again.',
-        'INVALID_MOVE'
+        ERROR_MESSAGES.NETWORK_ERROR.message,
+        'NETWORK_ERROR',
+        error,
+        true
       );
     }
 
-    if (message.includes('INVALID_NAME')) {
+    // Check for timeout errors
+    if (message.includes('timeout') || message.includes('Timeout')) {
       return new GameError(
-        'Display name must be between 1 and 50 characters.',
-        'INVALID_NAME'
+        ERROR_MESSAGES.TIMEOUT.message,
+        'TIMEOUT',
+        error,
+        true
       );
     }
 
-    if (message.includes('INVALID_PLAYER_COUNT')) {
-      return new GameError('Number of players must be 2, 3, or 4.', 'INVALID_PLAYER_COUNT');
-    }
-
-    // Generic error
-    return new GameError(message, 'UNKNOWN_ERROR', error);
+    // Generic error - extract clean message if possible
+    const cleanMessage = message.replace(/^(Error: |Exception: )/, '');
+    return new GameError(cleanMessage, 'UNKNOWN_ERROR', error, false);
   }
 
-  return new GameError('An unexpected error occurred.', 'UNKNOWN_ERROR', error);
+  return new GameError('An unexpected error occurred.', 'UNKNOWN_ERROR', error, false);
 }
 
 export function getErrorMessage(error: unknown): string {
   const gameError = handleSupabaseError(error);
   return gameError.message;
+}
+
+export function isRetryableError(error: unknown): boolean {
+  const gameError = handleSupabaseError(error);
+  return gameError.isRetryable;
 }

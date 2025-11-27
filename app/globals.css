@@ -88,6 +88,12 @@
   --sidebar-primary: oklch(0.208 0.042 265.755);
   --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
   --sidebar-accent: oklch(0.968 0.007 247.896);
+  
+  /* Game player colors - also in :root for SVG compatibility */
+  --color-player-red: #ef4444;
+  --color-player-blue: #3b82f6;
+  --color-player-green: #22c55e;
+  --color-player-yellow: #eab308;
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
@@ -133,6 +139,22 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Accessible focus indicators - WCAG 2.1 AA compliant */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary;
+  }
+  
+  /* High contrast focus for game elements */
+  .marble:focus-visible {
+    outline: 3px solid #FFD700;
+    outline-offset: 4px;
+  }
+  
+  button:focus-visible,
+  [role="button"]:focus-visible {
+    @apply ring-2 ring-primary ring-offset-2 ring-offset-background;
   }
   
   /* Prevent text selection on game elements for better touch UX */

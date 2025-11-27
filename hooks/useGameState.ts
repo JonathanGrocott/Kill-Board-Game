@@ -25,21 +25,29 @@ export function useGameState(gameId: string) {
       setIsLoading(true);
       setError(null);
 
+      console.log('[useGameState] Fetching game state for:', gameId);
+
       const { data, error: rpcError } = await supabase.rpc('get_game_state', {
         p_game_id: gameId,
       });
 
+      console.log('[useGameState] RPC response:', { data, error: rpcError });
+
       if (rpcError) {
+        console.error('[useGameState] RPC error:', rpcError);
         throw rpcError;
       }
 
       if (data) {
-        // RPC returns flat object with nested players/marbles arrays
+        // RPC returns flat structure: { id, status, players, marbles, ... }
+        // We need to restructure it to: { game: {...}, players: [...], marbles: [...] }
         const rawData = data as Record<string, unknown>;
-        const { players, marbles, ...gameData } = rawData;
+        const { players, marbles, ...gameProps } = rawData;
+        
+        console.log('[useGameState] Setting game state:', { gameProps, players, marbles });
         
         setGameState({
-          game: gameData as unknown as Game,
+          game: gameProps as unknown as Game,
           players: (players || []) as unknown as Player[],
           marbles: (marbles || []) as unknown as Marble[],
         });
@@ -105,12 +113,17 @@ export function useGameState(gameId: string) {
         setIsLoading(true);
         setError(null);
 
+        console.log('[moveMarble] Calling RPC with:', { gameId, marbleId });
+
         const { data, error: rpcError } = await supabase.rpc('move_marble', {
           p_game_id: gameId,
           p_marble_id: marbleId,
         });
 
+        console.log('[moveMarble] RPC response:', { data, error: rpcError });
+
         if (rpcError) {
+          console.error('[moveMarble] RPC error details:', JSON.stringify(rpcError, null, 2));
           throw rpcError;
         }
 
@@ -121,7 +134,12 @@ export function useGameState(gameId: string) {
       } catch (err) {
         const errorMessage = getErrorMessage(err);
         setError(errorMessage);
+        // Log all error properties for debugging
         console.error('Failed to move marble:', err);
+        if (err && typeof err === 'object') {
+          console.error('Error properties:', Object.entries(err));
+          console.error('Error JSON:', JSON.stringify(err, null, 2));
+        }
         return null;
       } finally {
         setIsLoading(false);

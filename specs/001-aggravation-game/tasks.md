@@ -127,16 +127,16 @@
 
 ### Lobby Components
 
-- [ ] T058 [P] [US2] Install shadcn/ui Input component via `npx shadcn-ui@latest add input` for display name entry in components/ui/input.tsx
-- [ ] T059 [P] [US2] Create GuestNamePrompt component in components/auth/GuestNamePrompt.tsx: modal asking for display name (2-20 chars), validates input per spec.md FR-019
-- [ ] T060 [US2] Create PlayerList component in components/lobby/PlayerList.tsx: displays all joined players with names, colors, "Bot" badge per spec.md FR-015
-- [ ] T061 [US2] Create ShareLink component in components/lobby/ShareLink.tsx: copy game URL to clipboard, show "Copied!" feedback per spec.md FR-012
+- [X] T058 [P] [US2] Install shadcn/ui Input component via `npx shadcn-ui@latest add input` for display name entry in components/ui/input.tsx
+- [X] T059 [P] [US2] Create GuestNamePrompt component in components/auth/GuestNamePrompt.tsx: modal asking for display name (2-20 chars), validates input per spec.md FR-019
+- [X] T060 [US2] Create PlayerList component in components/lobby/PlayerList.tsx: displays all joined players with names, colors, "Bot" badge per spec.md FR-015
+- [X] T061 [US2] Create ShareLink component in components/lobby/ShareLink.tsx: copy game URL to clipboard, show "Copied!" feedback per spec.md FR-012
 
 ### Home Page
 
-- [ ] T062 [US2] Create home page in app/page.tsx: "Create Game" and "Join Game" buttons, hero text explaining Aggravation per spec.md SC-007
-- [ ] T063 [US2] Implement create game handler in app/page.tsx: prompt for display name, call create_game_session RPC, redirect to /game/[id] per spec.md acceptance scenario 2.1
-- [ ] T064 [US2] Implement join game flow in app/page.tsx: prompt for game ID or parse from URL param, prompt for display name, call join_game_session RPC per spec.md acceptance scenario 2.2
+- [X] T062 [US2] Create home page in app/page.tsx: "Create Game" and "Join Game" buttons, hero text explaining Aggravation per spec.md SC-007
+- [X] T063 [US2] Implement create game handler in app/page.tsx: prompt for display name, call create_game_session RPC, redirect to /game/[id] per spec.md acceptance scenario 2.1
+- [X] T064 [US2] Implement join game flow in app/page.tsx: prompt for game ID or parse from URL param, prompt for display name, call join_game_session RPC per spec.md acceptance scenario 2.2
 
 ### Lobby Page
 
@@ -292,20 +292,20 @@
 
 - [X] T119 [P] Add React.memo to Marble component in components/game/Marble.tsx: prevent re-renders when position unchanged per research.md performance
 - [ ] T120 [P] Optimize Board SVG rendering in components/game/Board.tsx: reduce DOM nodes, use CSS transforms for animations per spec.md SC-012
-- [ ] T121 Implement code splitting in app/ pages: use Next.js dynamic imports for heavy components (Board, VictoryScreen) per research.md Next.js features
+- [X] T121 Implement code splitting in app/ pages: use Next.js dynamic imports for heavy components (Board, VictoryScreen) per research.md Next.js features
 - [X] T122 Add loading states in app/game/[id]/loading.tsx: skeleton UI while game data loads per plan.md UX consistency
 
 ### Error Handling
 
 - [X] T123 [P] Create error boundaries in app/error.tsx and app/game/[id]/error.tsx: catch React errors, show user-friendly messages per plan.md code quality
-- [ ] T124 [P] Add user-facing error messages in lib/utils/errors.ts: map Supabase errors to actionable text (e.g., "Game is full" instead of "GAME_FULL") per spec.md FR-026
-- [ ] T125 Implement retry logic in lib/supabase/client.ts: auto-retry failed RPC calls up to 3 times per plan.md performance requirements
+- [X] T124 [P] Add user-facing error messages in lib/utils/errors.ts: map Supabase errors to actionable text (e.g., "Game is full" instead of "GAME_FULL") per spec.md FR-026
+- [X] T125 Implement retry logic in lib/supabase/client.ts: auto-retry failed RPC calls up to 3 times per plan.md performance requirements
 
 ### Accessibility
 
-- [ ] T126 [P] Add ARIA labels to Board component in components/game/Board.tsx: screen reader announces current turn, marble positions per spec.md WCAG 2.1 AA
-- [ ] T127 [P] Implement keyboard navigation in components/game/Board.tsx: arrow keys to select marble, Enter to move per plan.md accessibility
-- [ ] T128 Add focus indicators to all interactive elements: visible outline on focus, complies with WCAG 2.1 AA contrast per research.md shadcn/ui
+- [X] T126 [P] Add ARIA labels to Board component in components/game/Board.tsx: screen reader announces current turn, marble positions per spec.md WCAG 2.1 AA
+- [X] T127 [P] Implement keyboard navigation in components/game/Board.tsx: arrow keys to select marble, Enter to move per plan.md accessibility
+- [X] T128 Add focus indicators to all interactive elements: visible outline on focus, complies with WCAG 2.1 AA contrast per research.md shadcn/ui
 
 ### Deployment
 
@@ -317,7 +317,7 @@
 
 ### Documentation
 
-- [ ] T134 [P] Update README.md in repository root: add project description, setup instructions, deployment guide from quickstart.md
+- [X] T134 [P] Update README.md in repository root: add project description, setup instructions, deployment guide from quickstart.md
 - [ ] T135 [P] Add code comments to complex functions: board position calculations, move validation, RPC functions per plan.md code quality
 - [ ] T136 Verify quickstart.md accuracy: test all 8 setup steps on fresh clone, update any outdated commands per spec.md SC-011
 

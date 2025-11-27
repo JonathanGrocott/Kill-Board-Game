@@ -84,6 +84,10 @@ DECLARE
   v_player_won BOOLEAN := false;
   v_next_player_id UUID;
   v_marbles_at_home INTEGER;
+  v_player_color TEXT;
+  v_start_position INTEGER;
+  v_has_completed_lap BOOLEAN := false;
+  v_own_marble_collision BOOLEAN := false;
 BEGIN
   -- Get game state
   SELECT * INTO v_game FROM game_sessions WHERE id = p_game_id AND status = 'active';
@@ -109,37 +113,28 @@ BEGIN
     RAISE EXCEPTION 'INVALID_MARBLE';
   END IF;
   
-  -- Get player color and determine starting position
-  DECLARE
-    v_player_color TEXT;
-    v_start_position INTEGER;
-    v_has_completed_lap BOOLEAN := false;
-  BEGIN
-    v_player_color := v_player.color;
-    
-    -- Determine starting position based on color
-    CASE v_player_color
-      WHEN 'red' THEN v_start_position := 0;
-      WHEN 'blue' THEN v_start_position := 17;
-      WHEN 'green' THEN v_start_position := 34;
-      WHEN 'yellow' THEN v_start_position := 51;
-      ELSE RAISE EXCEPTION 'INVALID_COLOR: %', v_player_color;
-    END CASE;
-    
-    -- Determine if marble has completed a lap
-    -- (If on shortcut or home, or if track position > starting position by more than half the track)
-    IF v_marble.position_type IN ('shortcut', 'home') THEN
-      v_has_completed_lap := true;
-    ELSIF v_marble.position_type = 'track' AND v_marble.position_index IS NOT NULL THEN
-      -- Check if marble has passed starting position (simple heuristic)
-      -- More robust: check if it's been around the track (position > start + 34 spaces)
-      IF v_marble.position_index != v_start_position THEN
-        -- For simplicity, assume any marble that's not at start has potential for lap completion
-        -- Real logic: track actual laps in a marbles column, but for MVP we simplify
-        v_has_completed_lap := (v_marble.position_index - v_start_position + 68) % 68 > 34;
-      END IF;
+  -- Get player color
+  v_player_color := v_player.color;
+  
+  -- Determine starting position based on color
+  CASE v_player_color
+    WHEN 'red' THEN v_start_position := 0;
+    WHEN 'blue' THEN v_start_position := 17;
+    WHEN 'green' THEN v_start_position := 34;
+    WHEN 'yellow' THEN v_start_position := 51;
+    ELSE RAISE EXCEPTION 'INVALID_COLOR: %', v_player_color;
+  END CASE;
+  
+  -- Determine if marble has completed a lap
+  -- (If on shortcut or home, or if track position > starting position by more than half the track)
+  IF v_marble.position_type IN ('shortcut', 'home') THEN
+    v_has_completed_lap := true;
+  ELSIF v_marble.position_type = 'track' AND v_marble.position_index IS NOT NULL THEN
+    -- Check if marble has passed starting position (simple heuristic)
+    IF v_marble.position_index != v_start_position THEN
+      v_has_completed_lap := (v_marble.position_index - v_start_position + 68) % 68 > 34;
     END IF;
-  END;
+  END IF;
   
   -- Calculate new position based on current position type
   IF v_marble.position_type = 'base' THEN
@@ -191,7 +186,20 @@ BEGIN
     RAISE EXCEPTION 'INVALID_MOVE: Unknown position type %', v_marble.position_type;
   END IF;
   
-  -- Check for captures (only on track)
+  -- Check for collision with own marbles (cannot land on your own marble)
+  SELECT EXISTS(
+    SELECT 1 FROM marbles m
+    WHERE m.player_id = v_player.id
+      AND m.id != p_marble_id
+      AND m.position_type = v_new_position_type
+      AND m.position_index = v_new_position_index
+  ) INTO v_own_marble_collision;
+  
+  IF v_own_marble_collision THEN
+    RAISE EXCEPTION 'INVALID_MOVE: Cannot land on your own marble';
+  END IF;
+  
+  -- Check for captures (only on track, from opponents)
   IF v_new_position_type = 'track' THEN
     SELECT id INTO v_captured_marble_id
     FROM marbles m

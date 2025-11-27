@@ -22,12 +22,13 @@ export const HOME_SPACES = 5;
 
 /**
  * Track starting positions for each player color
+ * red=51, yellow=0, green=17, blue=34
  */
 export const STARTING_POSITIONS: Record<PlayerColor, number> = {
-  red: 0,
-  blue: 17,
-  green: 34,
-  yellow: 51,
+  red: 51,
+  yellow: 0,
+  green: 17,
+  blue: 34,
 };
 
 /**
@@ -35,10 +36,10 @@ export const STARTING_POSITIONS: Record<PlayerColor, number> = {
  * Players enter the shortcut after passing their starting position
  */
 export const SHORTCUT_ENTRY: Record<PlayerColor, number> = {
-  red: 0,
-  blue: 17,
-  green: 34,
-  yellow: 51,
+  red: 51,
+  yellow: 0,
+  green: 17,
+  blue: 34,
 };
 
 /**
@@ -86,41 +87,43 @@ export function getMarbleCoordinates(
 /**
  * Get base coordinates for a marble in starting position
  * 6 spots available per base (for 5 marbles)
+ * Coordinates match Board.tsx basePositions
  */
 function getBaseCoordinates(color: PlayerColor, marbleNumber: number): BoardCoordinates {
-  // Base positions matching the new cross-shaped board
+  // Base positions - near each player's starting track position (pot)
+  // Red=51 (right), Yellow=0 (bottom), Green=17 (left), Blue=34 (top)
   const basePositions: Record<PlayerColor, Array<{ x: number; y: number }>> = {
-    red: [
-      { x: 70, y: 480 },
-      { x: 90, y: 500 },
-      { x: 90, y: 530 },
-      { x: 60, y: 530 },
-      { x: 50, y: 500 },
-      { x: 60, y: 470 },
+    red: [ // Bottom-Right Corner (near position 51)
+      { x: 480, y: 540 },
+      { x: 510, y: 540 },
+      { x: 540, y: 540 },
+      { x: 480, y: 510 },
+      { x: 510, y: 510 },
+      { x: 540, y: 510 },
     ],
-    blue: [
-      { x: 570, y: 490 },
-      { x: 590, y: 510 },
-      { x: 590, y: 540 },
-      { x: 560, y: 540 },
-      { x: 550, y: 510 },
-      { x: 560, y: 480 },
+    yellow: [ // Bottom-Left Corner (near position 0)
+      { x: 60, y: 540 },
+      { x: 90, y: 540 },
+      { x: 120, y: 540 },
+      { x: 60, y: 510 },
+      { x: 90, y: 510 },
+      { x: 120, y: 510 },
     ],
-    green: [
-      { x: 560, y: 10 },
-      { x: 580, y: 30 },
-      { x: 580, y: 60 },
-      { x: 550, y: 60 },
-      { x: 540, y: 30 },
-      { x: 550, y: 0 },
+    green: [ // Top-Left Corner (near position 17)
+      { x: 60, y: 60 },
+      { x: 90, y: 60 },
+      { x: 120, y: 60 },
+      { x: 60, y: 90 },
+      { x: 90, y: 90 },
+      { x: 120, y: 90 },
     ],
-    yellow: [
-      { x: 80, y: 20 },
-      { x: 100, y: 40 },
-      { x: 100, y: 70 },
-      { x: 70, y: 70 },
-      { x: 60, y: 40 },
-      { x: 70, y: 10 },
+    blue: [ // Top-Right Corner (near position 34)
+      { x: 480, y: 60 },
+      { x: 510, y: 60 },
+      { x: 540, y: 60 },
+      { x: 480, y: 90 },
+      { x: 510, y: 90 },
+      { x: 540, y: 510 },
     ],
   };
 
@@ -218,63 +221,84 @@ export function getTrackCoordinates(positionIndex: number): BoardCoordinates {
 
 /**
  * Get shortcut coordinates for center shortcut path
- * Shortcuts go from outer track to home zone
+ * Shortcuts go from entry point toward center
+ * These should align with the home track positions
  */
 function getShortcutCoordinates(color: PlayerColor, positionIndex: number): BoardCoordinates {
-  const centerX = 400;
-  const centerY = 400;
-
-  // Each player's shortcut goes from their starting position toward center
-  const angles: Record<PlayerColor, number> = {
-    red: -Math.PI / 2,     // From bottom
-    blue: 0,               // From right
-    green: Math.PI / 2,    // From top
-    yellow: Math.PI,       // From left
+  // Shortcut paths mirror the home paths but start from entry positions
+  // Using the same spacing as home positions (35px apart)
+  const shortcutPositions: Record<PlayerColor, Array<{ x: number; y: number }>> = {
+    red: [ // Bottom entry -> toward center
+      { x: 300, y: 580 }, // Entry from track
+      { x: 300, y: 545 },
+      { x: 300, y: 510 },
+      { x: 300, y: 475 },
+    ],
+    blue: [ // Right entry -> toward center
+      { x: 580, y: 300 },
+      { x: 545, y: 300 },
+      { x: 510, y: 300 },
+      { x: 475, y: 300 },
+    ],
+    green: [ // Top entry -> toward center
+      { x: 300, y: 20 },
+      { x: 300, y: 55 },
+      { x: 300, y: 90 },
+      { x: 300, y: 125 },
+    ],
+    yellow: [ // Left entry -> toward center
+      { x: 20, y: 300 },
+      { x: 55, y: 300 },
+      { x: 90, y: 300 },
+      { x: 125, y: 300 },
+    ],
   };
 
-  const angle = angles[color];
-  const distance = 280 - (positionIndex * 40); // Move toward center
+  const positions = shortcutPositions[color];
+  const index = Math.min(positionIndex, positions.length - 1);
 
-  return {
-    x: centerX + distance * Math.cos(angle),
-    y: centerY + distance * Math.sin(angle),
-  };
+  return positions[index];
 }
 
 /**
  * Get home zone coordinates for final 5 spaces
  * Each player has a path pointing toward center
+ * Coordinates match Board.tsx homePositions
  */
 function getHomeCoordinates(color: PlayerColor, positionIndex: number): BoardCoordinates {
-  // Home positions - 5 spaces per player
+  // Home positions - 5 spaces per player (shifted counterclockwise from original)
+  // Red home is on the RIGHT arm (top side)
+  // Blue home is on the TOP arm (left side)
+  // Green home is on the LEFT arm (bottom side)
+  // Yellow home is on the BOTTOM arm (right side)
   const homePositions: Record<PlayerColor, Array<{ x: number; y: number }>> = {
-    red: [
-      { x: 325, y: 480 },
-      { x: 325, y: 450 },
-      { x: 325, y: 420 },
-      { x: 325, y: 390 },
-      { x: 325, y: 360 },
+    red: [ // Bottom Arm - middle, pointing UP toward center
+      { x: 300, y: 545 },
+      { x: 300, y: 510 },
+      { x: 300, y: 475 },
+      { x: 300, y: 440 },
+      { x: 300, y: 405 },
     ],
-    blue: [
-      { x: 425, y: 350 },
-      { x: 450, y: 350 },
-      { x: 480, y: 350 },
-      { x: 510, y: 350 },
-      { x: 540, y: 350 },
+    blue: [ // Right Arm - middle, pointing LEFT toward center
+      { x: 545, y: 300 },
+      { x: 510, y: 300 },
+      { x: 475, y: 300 },
+      { x: 440, y: 300 },
+      { x: 405, y: 300 },
     ],
-    green: [
-      { x: 320, y: 30 },
-      { x: 320, y: 60 },
-      { x: 320, y: 90 },
-      { x: 320, y: 120 },
-      { x: 320, y: 150 },
+    green: [ // Top Arm - middle, pointing DOWN toward center
+      { x: 300, y: 55 },
+      { x: 300, y: 90 },
+      { x: 300, y: 125 },
+      { x: 300, y: 160 },
+      { x: 300, y: 195 },
     ],
-    yellow: [
-      { x: 60, y: 190 },
-      { x: 90, y: 190 },
-      { x: 120, y: 190 },
-      { x: 150, y: 190 },
-      { x: 180, y: 190 },
+    yellow: [ // Left Arm - middle, pointing RIGHT toward center
+      { x: 55, y: 300 },
+      { x: 90, y: 300 },
+      { x: 125, y: 300 },
+      { x: 160, y: 300 },
+      { x: 195, y: 300 },
     ],
   };
 

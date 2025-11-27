@@ -67,6 +67,17 @@ function MarbleComponent({ marble, playerColor, isSelected, isValid, onClick, on
     }
   };
 
+  // Position description for screen readers
+  const positionDescription = marble.position_type === 'base' 
+    ? 'in base' 
+    : marble.position_type === 'home'
+    ? `in home zone at position ${(marble.position_index || 0) + 1}`
+    : marble.position_type === 'shortcut'
+    ? `on shortcut at position ${(marble.position_index || 0) + 1}`
+    : `on track at position ${(marble.position_index || 0) + 1}`;
+
+  const marbleLabel = `${playerColor} marble ${marble.marble_number} ${positionDescription}${isSelected ? ', selected' : ''}${isValid ? ', can be moved' : ''}`;
+
   return (
     <motion.g
       initial={{ x: coords.x, y: coords.y }}
@@ -94,6 +105,16 @@ function MarbleComponent({ marble, playerColor, isSelected, isValid, onClick, on
         duration: 0.5,
       }}
       className="marble"
+      role="button"
+      aria-label={marbleLabel}
+      aria-pressed={isSelected}
+      tabIndex={isValid ? 0 : -1}
+      onKeyDown={(e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && onClick) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
     >
       {/* Touch target (invisible, larger area) */}
       {(onClick || isDraggable) && (
@@ -105,16 +126,6 @@ function MarbleComponent({ marble, playerColor, isSelected, isValid, onClick, on
           className="touch-target"
         />
       )}
-
-      {/* Marble shadow */}
-      <circle
-        cx={0}
-        cy={2}
-        r={12}
-        fill="black"
-        opacity={isDragging ? 0.4 : 0.2}
-        pointerEvents="none"
-      />
 
       {/* Main marble - uses player color */}
       <circle

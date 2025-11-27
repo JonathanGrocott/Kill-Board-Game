@@ -18,7 +18,7 @@ import { signInAsGuest } from '@/lib/auth/guest';
 export default function HomePage() {
   const router = useRouter();
   const [showNamePrompt, setShowNamePrompt] = useState(false);
-  const [promptAction, setPromptAction] = useState<'create' | 'join'>('create');
+  const [promptAction, setPromptAction] = useState<'create' | 'join' | 'practice'>('create');
   const [gameId, setGameId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -46,45 +46,50 @@ export default function HomePage() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        // Need to sign in first
-        setPromptAction('create');
+        // Need to sign in first - set action to practice so bots get added after
+        setPromptAction('practice');
         setShowNamePrompt(true);
         setIsLoading(false);
         return;
       }
 
-      // Create game
-      const { data, error: createError } = await supabase.rpc('create_game_session', {
-        p_display_name: user.user_metadata?.display_name || 'Player',
-        p_num_players: 4,
-        p_enable_shortcuts: true,
-      });
-
-      if (createError) throw createError;
-
-      if (data) {
-        const gameData = data as unknown as { game_id: string };
-        const newGameId = gameData.game_id;
-
-        // Add 3 bots (this will auto-start the game when the 4th bot is added)
-        for (let i = 0; i < 3; i++) {
-          const { error: botError } = await supabase.rpc('add_bot_player', {
-            p_game_id: newGameId,
-          });
-          if (botError) {
-            console.error('Failed to add bot:', botError);
-            throw botError;
-          }
-        }
-
-        // Game should now be active, redirect to play page
-        router.push(`/game/${newGameId}/play`);
-      }
+      // User is already logged in, create game with bots directly
+      await createPracticeGame(user.user_metadata?.display_name || 'Player');
     } catch (err) {
       console.error('Error:', err);
       setError(err instanceof Error ? err.message : 'Failed to create practice game');
-    } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Helper function to create a practice game with bots
+  const createPracticeGame = async (displayName: string) => {
+    // Create game
+    const { data, error: createError } = await supabase.rpc('create_game_session', {
+      p_display_name: displayName,
+      p_num_players: 4,
+      p_enable_shortcuts: true,
+    });
+
+    if (createError) throw createError;
+
+    if (data) {
+      const gameData = data as unknown as { game_id: string };
+      const newGameId = gameData.game_id;
+
+      // Add 3 bots (this will auto-start the game when the 4th bot is added)
+      for (let i = 0; i < 3; i++) {
+        const { error: botError } = await supabase.rpc('add_bot_player', {
+          p_game_id: newGameId,
+        });
+        if (botError) {
+          console.error('Failed to add bot:', botError);
+          throw botError;
+        }
+      }
+
+      // Game should now be active, redirect to play page
+      router.push(`/game/${newGameId}/play`);
     }
   };
 
@@ -100,7 +105,10 @@ export default function HomePage() {
         throw new Error('Failed to sign in');
       }
 
-      if (promptAction === 'create') {
+      if (promptAction === 'practice') {
+        // Create practice game with bots
+        await createPracticeGame(displayName);
+      } else if (promptAction === 'create') {
         // Create new game
         const { data, error: rpcError } = await supabase.rpc('create_game_session', {
           p_display_name: displayName,

@@ -6,13 +6,13 @@
  * Main game interface with board, dice, turn indicators, and real-time sync
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Board } from '@/components/game/Board';
 import { Dice } from '@/components/game/Dice';
 import { TurnIndicator } from '@/components/game/TurnIndicator';
 import { TurnTimer } from '@/components/game/TurnTimer';
-import { VictoryScreen } from '@/components/game/VictoryScreen';
 import { ConnectionStatus } from '@/components/game/ConnectionStatus';
 import { useGameState } from '@/hooks/useGameState';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
@@ -20,6 +20,18 @@ import { supabase } from '@/lib/supabase/client';
 import type { Marble } from '@/types/game';
 import { canRollDice, canMoveMarble as canMoveMarbleRule } from '@/lib/game/rules';
 import { getValidMarbles } from '@/lib/game/moves';
+
+// Dynamic import for VictoryScreen - only loaded when game is completed
+const VictoryScreen = dynamic(
+  () => import('@/components/game/VictoryScreen').then(mod => ({ default: mod.VictoryScreen })),
+  { 
+    loading: () => (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    )
+  }
+);
 
 interface GamePlayPageProps {
   params: Promise<{
@@ -48,6 +60,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [validMarbleIds, setValidMarbleIds] = useState<string[]>([]);
   const [isBotThinking, setIsBotThinking] = useState(false);
+  const lastProcessedTurnRef = useRef<string | null>(null);
 
   // Setup Realtime sync
   const { sendDiceRoll, sendMarbleMove, connectionState } = useRealtimeSync({
@@ -112,11 +125,23 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
     getCurrentPlayer();
   }, [gameState]);
 
-  // Bot turn automation - track current turn player ID to properly detect changes
+  // Bot turn automation - use refs to avoid dependency issues with consecutive bots
   const currentTurnPlayerId = gameState?.game?.current_turn_player_id;
   const currentDiceRoll = gameState?.game?.current_dice_roll;
   
+  // Store bot dice roll for display
+  const [botDiceRoll, setBotDiceRoll] = useState<number | null>(null);
+  
+  // Counter to force re-check after bot turn completes
+  const [botTurnCounter, setBotTurnCounter] = useState(0);
+  
   useEffect(() => {
+    console.log('[Bot Effect] Running with:', {
+      currentTurnPlayerId,
+      botTurnCounter,
+      hasGameState: !!gameState?.game
+    });
+
     if (!gameState?.game || !currentTurnPlayerId) {
       console.log('[Bot Check] No game state yet');
       return;
@@ -130,14 +155,19 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
       playerId: currentTurnPlayer?.id,
       displayName: currentTurnPlayer?.display_name,
       isBot: currentTurnPlayer?.is_bot,
-      isBotThinking,
+      lastProcessedTurn: lastProcessedTurnRef.current,
       currentDiceRoll
     });
 
-    // Check if it's a bot's turn and we're not already processing
-    if (currentTurnPlayer?.is_bot && !isBotThinking) {
-      console.log('[Bot] Bot turn detected, executing in 1.5 seconds...');
+    // Check if it's a bot's turn and we haven't processed this specific player yet
+    const isNewBotTurn = currentTurnPlayer?.is_bot && 
+      lastProcessedTurnRef.current !== currentTurnPlayerId;
+
+    if (isNewBotTurn) {
+      console.log('[Bot] New bot turn detected:', currentTurnPlayer.display_name);
+      lastProcessedTurnRef.current = currentTurnPlayerId;
       setIsBotThinking(true);
+      setBotDiceRoll(null);
 
       // Add delay for natural feel (1.5 seconds)
       const botTimer = setTimeout(async () => {
@@ -150,19 +180,34 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
 
           if (botError) {
             console.error('[Bot] Bot turn failed:', botError);
-          } else {
-            console.log('[Bot] Bot turn completed:', data);
+            setIsBotThinking(false);
+            return;
           }
           
+          console.log('[Bot] Bot turn completed:', data);
+          
+          // Show the dice roll result
+          const result = data as { dice_value?: number; action?: string; } | null;
+          console.log('[Bot] Dice value from RPC:', result?.dice_value);
+          if (result?.dice_value) {
+            setBotDiceRoll(result.dice_value);
+          }
+          
+          // Wait for dice display before refreshing (longer to show the roll)
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
           // Refresh game state to get the updated turn
+          console.log('[Bot] Refreshing game state...');
           await refreshGameState();
+          console.log('[Bot] Game state refreshed, new currentTurnPlayerId will trigger effect');
+          
+          // Reset bot dice roll first, then thinking state
+          setBotDiceRoll(null);
+          setIsBotThinking(false);
+          setBotTurnCounter(c => c + 1);
         } catch (err) {
           console.error('[Bot] Failed to execute bot turn:', err);
-        } finally {
-          // Reset bot thinking state after a short delay to allow state to propagate
-          setTimeout(() => {
-            setIsBotThinking(false);
-          }, 500);
+          setIsBotThinking(false);
         }
       }, 1500);
 
@@ -170,9 +215,13 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
         clearTimeout(botTimer);
       };
     } else if (!currentTurnPlayer?.is_bot) {
+      // Reset when it's a human's turn
+      lastProcessedTurnRef.current = null;
       setIsBotThinking(false);
+      setBotDiceRoll(null);
     }
-  }, [currentTurnPlayerId, currentDiceRoll, gameState?.game, gameState?.players, gameId, isBotThinking, refreshGameState]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTurnPlayerId, gameState?.game, gameState?.players, gameId, refreshGameState, botTurnCounter]);
 
   // Handle dice roll
   const handleDiceRoll = useCallback(async () => {
@@ -257,13 +306,16 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
         // Clear valid marbles
         setValidMarbleIds([]);
 
+        // Refresh game state to get updated turn (triggers bot if next player is bot)
+        await refreshGameState();
+
         // Check if game is won
         if (result.player_won) {
           console.log('Game won!');
         }
       }
     },
-    [moveMarble, sendMarbleMove, gameState, currentPlayerId]
+    [moveMarble, sendMarbleMove, gameState, currentPlayerId, refreshGameState]
   );
 
   // Handle marble selection
@@ -395,9 +447,16 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <div className="flex items-center gap-2">
                     <div className="animate-pulse">🤖</div>
-                    <p className="text-blue-800 font-medium">
-                      {currentPlayer.display_name} is thinking...
-                    </p>
+                    <div>
+                      <p className="text-blue-800 font-medium">
+                        {currentPlayer.display_name} is thinking...
+                      </p>
+                      {botDiceRoll && (
+                        <p className="text-blue-600 text-sm">
+                          Rolled: {botDiceRoll}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -416,12 +475,12 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
                 />
               )}
 
-              {/* Dice */}
+              {/* Dice - show bot's roll when a bot is taking its turn */}
               <Dice
-                value={gameState.game.current_dice_roll}
+                value={botDiceRoll !== null ? botDiceRoll : gameState.game.current_dice_roll}
                 onRoll={isYourTurn && !gameState.game.current_dice_roll ? handleDiceRoll : undefined}
-                disabled={!isYourTurn || isLoading || !!gameState.game.current_dice_roll}
-                isRolling={isRolling}
+                disabled={!isYourTurn || isLoading || !!gameState.game.current_dice_roll || isBotThinking}
+                isRolling={isRolling || (isBotThinking && botDiceRoll === null)}
               />
 
               {/* Player status */}
