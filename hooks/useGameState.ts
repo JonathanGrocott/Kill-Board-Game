@@ -8,7 +8,7 @@
 
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import type { GameState, MoveResult, DiceRollResult } from '@/types/game';
+import type { GameState, MoveResult, DiceRollResult, Game, Player, Marble } from '@/types/game';
 import { getErrorMessage } from '@/lib/utils/errors';
 
 export function useGameState(gameId: string) {
@@ -34,7 +34,15 @@ export function useGameState(gameId: string) {
       }
 
       if (data) {
-        setGameState(data as unknown as GameState);
+        // RPC returns flat object with nested players/marbles arrays
+        const rawData = data as Record<string, unknown>;
+        const { players, marbles, ...gameData } = rawData;
+        
+        setGameState({
+          game: gameData as unknown as Game,
+          players: (players || []) as unknown as Player[],
+          marbles: (marbles || []) as unknown as Marble[],
+        });
       }
     } catch (err) {
       const errorMessage = getErrorMessage(err);
@@ -53,12 +61,26 @@ export function useGameState(gameId: string) {
       setIsLoading(true);
       setError(null);
 
+      console.log('Rolling dice for game:', gameId);
+
       const { data, error: rpcError } = await supabase.rpc('roll_dice', {
         p_game_id: gameId,
       });
 
+      console.log('Roll dice response:', { data, error: rpcError });
+
       if (rpcError) {
+        console.error('RPC Error details:', {
+          message: rpcError.message,
+          code: rpcError.code,
+          details: rpcError.details,
+          hint: rpcError.hint,
+        });
         throw rpcError;
+      }
+
+      if (!data) {
+        throw new Error('No data returned from roll_dice');
       }
 
       return data as unknown as DiceRollResult;
@@ -66,6 +88,8 @@ export function useGameState(gameId: string) {
       const errorMessage = getErrorMessage(err);
       setError(errorMessage);
       console.error('Failed to roll dice:', err);
+      console.error('Error type:', typeof err);
+      console.error('Error keys:', err ? Object.keys(err) : 'null');
       return null;
     } finally {
       setIsLoading(false);

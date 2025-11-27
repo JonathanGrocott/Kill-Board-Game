@@ -191,7 +191,7 @@ export function Board({
           fontWeight="bold"
           fill="#333"
         >
-          AGGRAVATION
+          KILL BOARD
         </text>
 
         {/* Render all marbles */}

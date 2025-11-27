@@ -113,7 +113,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
 
   // Bot turn detection and execution
   useEffect(() => {
-    if (!gameState || gameState.game.status !== 'active') return;
+    if (!gameState?.game || gameState.game.status !== 'active') return;
 
     const currentTurnPlayer = gameState.players.find(
       p => p.id === gameState.game.current_turn_player_id
@@ -151,7 +151,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
 
   // Handle dice roll
   const handleRollDice = useCallback(async () => {
-    if (!gameState || !currentPlayerId) return;
+    if (!gameState?.game || !currentPlayerId) return;
 
     // Check if player can roll
     if (!canRollDice(gameState.game, currentPlayerId)) {
@@ -187,7 +187,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
   // Handle marble move
   const handleMarbleMove = useCallback(
     async (marbleId: string) => {
-      if (!gameState) return;
+      if (!gameState?.marbles) return;
       
       const marble = gameState.marbles.find(m => m.id === marbleId);
       if (!marble) return;
@@ -227,7 +227,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
   // Handle marble selection
   const handleMarbleClick = useCallback(
     (marble: Marble) => {
-      if (!gameState || !currentPlayerId) return;
+      if (!gameState?.game || !currentPlayerId) return;
 
       // Check if it's player's turn and dice is rolled
       if (!canMoveMarbleRule(gameState.game, currentPlayerId)) {
@@ -250,7 +250,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
     [gameState, currentPlayerId, selectedMarbleId, validMarbleIds, selectMarble, handleMarbleMove]
   );
 
-  if (!gameState) {
+  if (!gameState?.game) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -260,11 +260,11 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
     );
   }
 
-  const currentPlayer = gameState.players.find(
+  const currentPlayer = gameState.players?.find(
     p => p.id === gameState.game.current_turn_player_id
   );
   const isYourTurn = currentPlayer?.id === currentPlayerId;
-  const winner = gameState.players.find(p => p.id === gameState.game.winner_player_id);
+  const winner = gameState.players?.find(p => p.id === gameState.game.winner_player_id);
 
   // Show victory screen if game is completed
   if (gameState.game.status === 'completed' && winner) {
@@ -291,8 +291,8 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
           {/* Main game board */}
           <div className="game-board-container flex-1 lg:col-span-2 flex items-center justify-center p-2 md:p-4">
             <Board
-              marbles={gameState.marbles}
-              players={gameState.players}
+              marbles={gameState.marbles || []}
+              players={gameState.players || []}
               onMarbleClick={handleMarbleClick}
               selectedMarbleId={selectedMarbleId}
               highlightedSpaces={[]}
@@ -340,7 +340,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
               <div className="bg-white rounded-lg p-4 shadow hidden lg:block">
                 <h3 className="font-semibold mb-3">Players</h3>
                 <div className="space-y-2">
-                  {gameState.players.map((player) => (
+                  {(gameState.players || []).map((player) => (
                     <div
                       key={player.id}
                       className="flex items-center justify-between p-2 rounded"
@@ -380,7 +380,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
             {/* Mobile player status - compact horizontal */}
             <div className="lg:hidden px-4 pb-3 bg-white border-t border-gray-200">
               <div className="flex gap-3 overflow-x-auto py-2">
-                {gameState.players.map((player) => (
+                {(gameState.players || []).map((player) => (
                   <div
                     key={player.id}
                     className="flex items-center gap-2 px-3 py-2 rounded-full whitespace-nowrap"
