@@ -7,9 +7,15 @@
  * - 68-space track around perimeter
  * - 4 corner bases (6 spots each for 5 marbles)
  * - 4 home zones (5 spaces each)
+ * 
+ * Performance optimizations (T120):
+ * - Static board elements memoized to prevent re-renders
+ * - Track positions pre-computed outside component
+ * - CSS transforms used for highlighting instead of re-rendering
+ * - Marble component memoized with custom comparison
  */
 
-import React from 'react';
+import React, { useMemo, memo } from 'react';
 import type { Marble as MarbleType, Player } from '@/types/game';
 import { Marble } from './Marble';
 import { getMarbleCoordinates } from '@/lib/game/board';
@@ -25,6 +31,140 @@ interface BoardProps {
   isDragEnabled?: boolean;
 }
 
+/**
+ * Pre-computed track positions (computed once at module load, not on every render)
+ * This reduces re-computation overhead for the 68 track positions
+ */
+const TRACK_POSITIONS: Array<{ cx: number; cy: number }> = (() => {
+  const positions: Array<{ cx: number; cy: number }> = [];
+  for (let i = 0; i < 68; i++) {
+    const coords = getMarbleCoordinates('track', i, 'red', 1);
+    positions.push({ cx: coords.x, cy: coords.y });
+  }
+  return positions;
+})();
+
+/**
+ * Base positions - 6 spots in each corner (empty space between arms)
+ * Pre-computed outside component for performance
+ */
+const BASE_POSITIONS = {
+  red: [ // Bottom-Right Corner (near position 51)
+    { cx: 480, cy: 540 }, { cx: 510, cy: 540 }, { cx: 540, cy: 540 },
+    { cx: 480, cy: 510 }, { cx: 510, cy: 510 }, { cx: 540, cy: 510 },
+  ],
+  yellow: [ // Bottom-Left Corner (near position 0)
+    { cx: 60, cy: 540 }, { cx: 90, cy: 540 }, { cx: 120, cy: 540 },
+    { cx: 60, cy: 510 }, { cx: 90, cy: 510 }, { cx: 120, cy: 510 },
+  ],
+  green: [ // Top-Left Corner (near position 17)
+    { cx: 60, cy: 60 }, { cx: 90, cy: 60 }, { cx: 120, cy: 60 },
+    { cx: 60, cy: 90 }, { cx: 90, cy: 90 }, { cx: 120, cy: 90 },
+  ],
+  blue: [ // Top-Right Corner (near position 34)
+    { cx: 480, cy: 60 }, { cx: 510, cy: 60 }, { cx: 540, cy: 60 },
+    { cx: 480, cy: 90 }, { cx: 510, cy: 90 }, { cx: 540, cy: 90 },
+  ],
+} as const;
+
+/**
+ * Home positions - 5 spaces per player pointing toward center
+ * Pre-computed outside component for performance
+ */
+const HOME_POSITIONS = {
+  red: [ // Bottom Arm - middle, pointing UP toward center
+    { cx: 300, cy: 545 }, { cx: 300, cy: 510 }, { cx: 300, cy: 475 },
+    { cx: 300, cy: 440 }, { cx: 300, cy: 405 },
+  ],
+  blue: [ // Right Arm - middle, pointing LEFT toward center
+    { cx: 545, cy: 300 }, { cx: 510, cy: 300 }, { cx: 475, cy: 300 },
+    { cx: 440, cy: 300 }, { cx: 405, cy: 300 },
+  ],
+  green: [ // Top Arm - middle, pointing DOWN toward center
+    { cx: 300, cy: 55 }, { cx: 300, cy: 90 }, { cx: 300, cy: 125 },
+    { cx: 300, cy: 160 }, { cx: 300, cy: 195 },
+  ],
+  yellow: [ // Left Arm - middle, pointing RIGHT toward center
+    { cx: 55, cy: 300 }, { cx: 90, cy: 300 }, { cx: 125, cy: 300 },
+    { cx: 160, cy: 300 }, { cx: 195, cy: 300 },
+  ],
+} as const;
+
+/**
+ * Special position indices for visual distinction
+ */
+const START_POSITIONS = new Set([0, 17, 34, 51]);
+const FAT_CITY_POSITIONS = new Set([6, 23, 40, 57]);
+
+/**
+ * Memoized static board background - rendered once and cached
+ * This significantly reduces DOM updates since these elements never change
+ */
+const StaticBoardBackground = memo(function StaticBoardBackground() {
+  return (
+    <>
+      {/* Board background */}
+      <rect x="-50" y="-50" width="700" height="700" fill="#F5E6D3" />
+
+      {/* Base areas - 6 spots each corner (static, never highlighted) */}
+      {(Object.entries(BASE_POSITIONS) as [string, typeof BASE_POSITIONS.red][]).map(([color, positions]) => (
+        <g key={`base-${color}`}>
+          {/* Base Label */}
+          <text
+            x={color === 'red' ? 520 : color === 'blue' ? 520 : 80}
+            y={color === 'red' ? 560 : color === 'blue' ? 40 : color === 'green' ? 40 : 560}
+            textAnchor="middle"
+            fontSize="16"
+            fontWeight="bold"
+            fill={`var(--color-player-${color})`}
+            opacity="0.8"
+          >
+            {color.toUpperCase()}
+          </text>
+          {positions.map((pos, i) => (
+            <circle
+              key={`base-${color}-${i}`}
+              cx={pos.cx}
+              cy={pos.cy}
+              r={10}
+              fill="none"
+              stroke={`var(--color-player-${color})`}
+              strokeWidth="2"
+              opacity="0.6"
+            />
+          ))}
+        </g>
+      ))}
+
+      {/* Labels for Pot (starting) positions */}
+      <text x={TRACK_POSITIONS[0]?.cx - 25} y={TRACK_POSITIONS[0]?.cy + 4} fontSize="8" fill="#C41E3A" fontWeight="bold">Pot</text>
+      <text x={TRACK_POSITIONS[17]?.cx + 4} y={TRACK_POSITIONS[17]?.cy - 18} fontSize="8" fill="#DAA520" fontWeight="bold">Pot</text>
+      <text x={TRACK_POSITIONS[34]?.cx + 18} y={TRACK_POSITIONS[34]?.cy + 4} fontSize="8" fill="#228B22" fontWeight="bold">Pot</text>
+      <text x={TRACK_POSITIONS[51]?.cx + 4} y={TRACK_POSITIONS[51]?.cy + 22} fontSize="8" fill="#1E90FF" fontWeight="bold">Pot</text>
+
+      {/* Labels for Fat City positions */}
+      <text x={TRACK_POSITIONS[6]?.cx + 4} y={TRACK_POSITIONS[6]?.cy - 16} fontSize="7" fill="#C41E3A" fontWeight="bold">Fat City</text>
+      <text x={TRACK_POSITIONS[23]?.cx + 16} y={TRACK_POSITIONS[23]?.cy + 4} fontSize="7" fill="#DAA520" fontWeight="bold">Fat City</text>
+      <text x={TRACK_POSITIONS[40]?.cx - 8} y={TRACK_POSITIONS[40]?.cy + 20} fontSize="7" fill="#228B22" fontWeight="bold">Fat City</text>
+      <text x={TRACK_POSITIONS[57]?.cx - 35} y={TRACK_POSITIONS[57]?.cy + 4} fontSize="7" fill="#1E90FF" fontWeight="bold">Fat City</text>
+
+      {/* Center space label */}
+      <text
+        x={300}
+        y={318}
+        textAnchor="middle"
+        fontSize="8"
+        fontWeight="bold"
+        fill="#333"
+      >
+        Center
+      </text>
+    </>
+  );
+});
+
+StaticBoardBackground.displayName = 'StaticBoardBackground';
+
 export function Board({
   marbles,
   players,
@@ -35,87 +175,33 @@ export function Board({
   highlightedSpaces = [],
   isDragEnabled = false,
 }: BoardProps) {
-  // Track positions - 68 total spaces
-  const trackPositions: Array<{ cx: number; cy: number }> = [];
-  for (let i = 0; i < 68; i++) {
-    const coords = getMarbleCoordinates('track', i, 'red', 1); // Player/number don't matter for track
-    trackPositions.push({ cx: coords.x, cy: coords.y });
-  }
+  // Create a Set for O(1) lookup of highlighted spaces
+  const highlightedTrackSet = useMemo(() => {
+    const set = new Set<number>();
+    highlightedSpaces.forEach(space => {
+      if (space.type === 'track' && space.index !== null) {
+        set.add(space.index);
+      }
+    });
+    return set;
+  }, [highlightedSpaces]);
 
-  // Base positions - 6 spots in each corner (empty space between arms)
-  // Positioned near each player's starting track position (pot)
-  // Red=51 (right), Yellow=0 (bottom), Green=17 (left), Blue=34 (top)
-  const basePositions = {
-    red: [ // Bottom-Right Corner (near position 51)
-      { cx: 480, cy: 540 },
-      { cx: 510, cy: 540 },
-      { cx: 540, cy: 540 },
-      { cx: 480, cy: 510 },
-      { cx: 510, cy: 510 },
-      { cx: 540, cy: 510 },
-    ],
-    yellow: [ // Bottom-Left Corner (near position 0)
-      { cx: 60, cy: 540 },
-      { cx: 90, cy: 540 },
-      { cx: 120, cy: 540 },
-      { cx: 60, cy: 510 },
-      { cx: 90, cy: 510 },
-      { cx: 120, cy: 510 },
-    ],
-    green: [ // Top-Left Corner (near position 17)
-      { cx: 60, cy: 60 },
-      { cx: 90, cy: 60 },
-      { cx: 120, cy: 60 },
-      { cx: 60, cy: 90 },
-      { cx: 90, cy: 90 },
-      { cx: 120, cy: 90 },
-    ],
-    blue: [ // Top-Right Corner (near position 34)
-      { cx: 480, cy: 60 },
-      { cx: 510, cy: 60 },
-      { cx: 540, cy: 60 },
-      { cx: 480, cy: 90 },
-      { cx: 510, cy: 90 },
-      { cx: 540, cy: 90 },
-    ],
-  };
+  const highlightedHomeSet = useMemo(() => {
+    const map = new Map<string, Set<number>>();
+    highlightedSpaces.forEach(space => {
+      if (space.type === 'home' && space.index !== null) {
+        // Home spaces are color-agnostic in highlighting for now
+        if (!map.has('all')) map.set('all', new Set());
+        map.get('all')!.add(space.index);
+      }
+    });
+    return map;
+  }, [highlightedSpaces]);
 
-  // Home positions - 5 spaces per player pointing toward center
-  // Each player's home is to their RIGHT from their sitting perspective
-  // Red sits at bottom, home is on RIGHT side of bottom arm
-  // Blue sits at right, home is on TOP side of right arm (their right)
-  // Green sits at top, home is on LEFT side of top arm (their right)
-  // Yellow sits at left, home is on BOTTOM side of left arm (their right)
-  const homePositions = {
-    red: [ // Bottom Arm - middle, pointing UP toward center
-      { cx: 300, cy: 545 },
-      { cx: 300, cy: 510 },
-      { cx: 300, cy: 475 },
-      { cx: 300, cy: 440 },
-      { cx: 300, cy: 405 },
-    ],
-    blue: [ // Right Arm - middle, pointing LEFT toward center
-      { cx: 545, cy: 300 },
-      { cx: 510, cy: 300 },
-      { cx: 475, cy: 300 },
-      { cx: 440, cy: 300 },
-      { cx: 405, cy: 300 },
-    ],
-    green: [ // Top Arm - middle, pointing DOWN toward center
-      { cx: 300, cy: 55 },
-      { cx: 300, cy: 90 },
-      { cx: 300, cy: 125 },
-      { cx: 300, cy: 160 },
-      { cx: 300, cy: 195 },
-    ],
-    yellow: [ // Left Arm - middle, pointing RIGHT toward center
-      { cx: 55, cy: 300 },
-      { cx: 90, cy: 300 },
-      { cx: 125, cy: 300 },
-      { cx: 160, cy: 300 },
-      { cx: 195, cy: 300 },
-    ],
-  };
+  const isCenterHighlighted = useMemo(() => 
+    highlightedSpaces.some(space => space.type === 'center'),
+    [highlightedSpaces]
+  );
 
   return (
     <div 
@@ -134,20 +220,15 @@ export function Board({
         <title>Kill Game Board</title>
         <desc>An interactive game board for the Kill (Aggravation) board game. Click on marbles to select and move them.</desc>
         
-        {/* Board background */}
-        <rect x="-50" y="-50" width="700" height="700" fill="#F5E6D3" />
+        {/* Static background elements (memoized, never re-renders) */}
+        <StaticBoardBackground />
 
-        {/* Track spaces - 68 circles around perimeter */}
-        {trackPositions.map((pos, i) => {
-          const isHighlighted = highlightedSpaces.some(
-            space => space.type === 'track' && space.index === i
-          );
-
-          // Determine special positions
-          // Pot (starting positions): 0, 17, 34, 51
-          // Fat City (corners, 6 spaces from each start): 6, 23, 40, 57
-          const isStartPosition = i === 0 || i === 17 || i === 34 || i === 51;
-          const isFatCity = i === 6 || i === 23 || i === 40 || i === 57;
+        {/* Track spaces - 68 circles around perimeter
+            Using CSS transform for highlighting instead of changing fill attribute */}
+        {TRACK_POSITIONS.map((pos, i) => {
+          const isHighlighted = highlightedTrackSet.has(i);
+          const isStartPosition = START_POSITIONS.has(i);
+          const isFatCity = FAT_CITY_POSITIONS.has(i);
 
           return (
             <g key={`track-${i}`}>
@@ -157,8 +238,13 @@ export function Board({
                 r={12}
                 fill={isHighlighted ? '#FFD700' : 'white'}
                 stroke={isStartPosition ? '#333' : isFatCity ? '#666' : '#999'}
-                strokeWidth={isStartPosition ? '3' : isFatCity ? '2' : '1'}
-                opacity={isHighlighted ? 1 : 1}
+                strokeWidth={isStartPosition ? 3 : isFatCity ? 2 : 1}
+                style={{
+                  // Use CSS transform for performance instead of SVG attributes
+                  transform: isHighlighted ? 'scale(1.1)' : undefined,
+                  transformOrigin: `${pos.cx}px ${pos.cy}px`,
+                  transition: 'transform 0.15s ease-out, fill 0.15s ease-out',
+                }}
               />
               {/* Position number label */}
               <text
@@ -175,55 +261,11 @@ export function Board({
           );
         })}
 
-        {/* Labels for Pot (starting) positions - red=0, yellow=17, green=34, blue=51 */}
-        <text x={trackPositions[0]?.cx - 25} y={trackPositions[0]?.cy + 4} fontSize="8" fill="#C41E3A" fontWeight="bold">Pot</text>
-        <text x={trackPositions[17]?.cx + 4} y={trackPositions[17]?.cy - 18} fontSize="8" fill="#DAA520" fontWeight="bold">Pot</text>
-        <text x={trackPositions[34]?.cx + 18} y={trackPositions[34]?.cy + 4} fontSize="8" fill="#228B22" fontWeight="bold">Pot</text>
-        <text x={trackPositions[51]?.cx + 4} y={trackPositions[51]?.cy + 22} fontSize="8" fill="#1E90FF" fontWeight="bold">Pot</text>
-
-        {/* Labels for Fat City positions - red=6, yellow=23, green=40, blue=57 */}
-        <text x={trackPositions[6]?.cx + 4} y={trackPositions[6]?.cy - 16} fontSize="7" fill="#C41E3A" fontWeight="bold">Fat City</text>
-        <text x={trackPositions[23]?.cx + 16} y={trackPositions[23]?.cy + 4} fontSize="7" fill="#DAA520" fontWeight="bold">Fat City</text>
-        <text x={trackPositions[40]?.cx - 8} y={trackPositions[40]?.cy + 20} fontSize="7" fill="#228B22" fontWeight="bold">Fat City</text>
-        <text x={trackPositions[57]?.cx - 35} y={trackPositions[57]?.cy + 4} fontSize="7" fill="#1E90FF" fontWeight="bold">Fat City</text>
-
-        {/* Base areas - 6 spots each corner */}
-        {Object.entries(basePositions).map(([color, positions]) => (
-          <g key={`base-${color}`}>
-            {/* Base Label - shifted counterclockwise */}
-            <text
-              x={color === 'red' ? 520 : color === 'blue' ? 520 : color === 'green' ? 80 : 80}
-              y={color === 'red' ? 560 : color === 'blue' ? 40 : color === 'green' ? 40 : 560}
-              textAnchor="middle"
-              fontSize="16"
-              fontWeight="bold"
-              fill={`var(--color-player-${color})`}
-              opacity="0.8"
-            >
-              {color.toUpperCase()}
-            </text>
-            {positions.map((pos, i) => (
-              <circle
-                key={`base-${color}-${i}`}
-                cx={pos.cx}
-                cy={pos.cy}
-                r={10}
-                fill="none"
-                stroke={`var(--color-player-${color})`}
-                strokeWidth="2"
-                opacity="0.6"
-              />
-            ))}
-          </g>
-        ))}
-
         {/* Home zones - 5 spaces per player (finish positions) */}
-        {Object.entries(homePositions).map(([color, positions]) => (
+        {(Object.entries(HOME_POSITIONS) as [string, typeof HOME_POSITIONS.red][]).map(([color, positions]) => (
           <g key={`home-${color}`}>
             {positions.map((pos, i) => {
-              const isHighlighted = highlightedSpaces.some(
-                space => space.type === 'home' && space.index === i
-              );
+              const isHighlighted = highlightedHomeSet.get('all')?.has(i) ?? false;
 
               return (
                 <circle
@@ -235,6 +277,11 @@ export function Board({
                   stroke="#333"
                   strokeWidth="2"
                   opacity={isHighlighted ? 1 : 0.6}
+                  style={{
+                    transform: isHighlighted ? 'scale(1.15)' : undefined,
+                    transformOrigin: `${pos.cx}px ${pos.cy}px`,
+                    transition: 'transform 0.15s ease-out, fill 0.15s ease-out',
+                  }}
                 />
               );
             })}
@@ -246,22 +293,17 @@ export function Board({
           cx={300}
           cy={300}
           r={15}
-          fill={highlightedSpaces.some(space => space.type === 'center') ? '#FFD700' : 'white'}
+          fill={isCenterHighlighted ? '#FFD700' : 'white'}
           stroke="#333"
           strokeWidth="2"
+          style={{
+            transform: isCenterHighlighted ? 'scale(1.1)' : undefined,
+            transformOrigin: '300px 300px',
+            transition: 'transform 0.15s ease-out, fill 0.15s ease-out',
+          }}
         />
-        <text
-          x={300}
-          y={318}
-          textAnchor="middle"
-          fontSize="8"
-          fontWeight="bold"
-          fill="#333"
-        >
-          Center
-        </text>
 
-        {/* Render all marbles */}
+        {/* Render all marbles (already memoized via Marble component) */}
         {marbles.map((marble) => {
           const player = players.find(p => p.id === marble.player_id);
           if (!player) return null;

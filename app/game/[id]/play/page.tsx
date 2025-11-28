@@ -60,6 +60,7 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [validMarbleIds, setValidMarbleIds] = useState<string[]>([]);
   const [isBotThinking, setIsBotThinking] = useState(false);
+  const [hasExtraTurn, setHasExtraTurn] = useState(false);
   const lastProcessedTurnRef = useRef<string | null>(null);
 
   // Setup Realtime sync
@@ -269,11 +270,13 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
           console.log('No valid moves, passing turn...');
           setTimeout(async () => {
             await passTurn();
+            // Refresh game state to trigger bot turn detection
+            await refreshGameState();
           }, 1500); // Small delay so user sees the dice roll
         }
       }
     }
-  }, [gameState, currentPlayerId, rollDice, sendDiceRoll, selectMarble, setGameState, passTurn]);
+  }, [gameState, currentPlayerId, rollDice, sendDiceRoll, selectMarble, setGameState, passTurn, refreshGameState]);
 
   // Handle marble move
   const handleMarbleMove = useCallback(
@@ -306,12 +309,25 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
         // Clear valid marbles
         setValidMarbleIds([]);
 
-        // Refresh game state to get updated turn (triggers bot if next player is bot)
-        await refreshGameState();
+        // Check if player gets extra turn (rolled 6)
+        if (result.extra_turn) {
+          console.log('Extra turn granted! Rolling again...');
+          setHasExtraTurn(true);
+          // Refresh game state to get cleared dice roll (so Roll button shows)
+          await refreshGameState();
+          // Show notification briefly then clear
+          setTimeout(() => {
+            setHasExtraTurn(false);
+          }, 2000);
+        } else {
+          // Refresh game state to get updated turn (triggers bot if next player is bot)
+          await refreshGameState();
+        }
 
         // Check if game is won
         if (result.player_won) {
           console.log('Game won!');
+          await refreshGameState();
         }
       }
     },
@@ -442,18 +458,33 @@ export default function GamePlayPage({ params }: GamePlayPageProps) {
           {/* Game controls - bottom on mobile, sidebar on desktop */}
           <div className="game-controls lg:space-y-4 bg-white border-t lg:border-t-0 lg:border-none">
             <div className="p-4 space-y-3 lg:space-y-4">
+              {/* Extra turn notification */}
+              {hasExtraTurn && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 animate-pulse">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">🎲</span>
+                    <div>
+                      <p className="text-yellow-800 font-medium">
+                        You rolled a 6! Roll again!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Bot thinking indicator */}
               {isBotThinking && currentPlayer?.is_bot && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <div className="flex items-center gap-2">
-                    <div className="animate-pulse">🤖</div>
+                    <div className={botDiceRoll ? "" : "animate-pulse"}>🤖</div>
                     <div>
-                      <p className="text-blue-800 font-medium">
-                        {currentPlayer.display_name} is thinking...
-                      </p>
-                      {botDiceRoll && (
-                        <p className="text-blue-600 text-sm">
-                          Rolled: {botDiceRoll}
+                      {botDiceRoll ? (
+                        <p className="text-blue-800 font-medium">
+                          {currentPlayer.display_name} rolled a {botDiceRoll}!
+                        </p>
+                      ) : (
+                        <p className="text-blue-800 font-medium">
+                          {currentPlayer.display_name} is thinking...
                         </p>
                       )}
                     </div>

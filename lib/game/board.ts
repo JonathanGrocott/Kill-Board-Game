@@ -22,13 +22,13 @@ export const HOME_SPACES = 5;
 
 /**
  * Track starting positions for each player color
- * red=51, yellow=0, green=17, blue=34
+ * red=0, yellow=17, green=34, blue=51
  */
 export const STARTING_POSITIONS: Record<PlayerColor, number> = {
-  red: 51,
-  yellow: 0,
-  green: 17,
-  blue: 34,
+  red: 0,
+  yellow: 17,
+  green: 34,
+  blue: 51,
 };
 
 /**
@@ -36,10 +36,10 @@ export const STARTING_POSITIONS: Record<PlayerColor, number> = {
  * Players enter the shortcut after passing their starting position
  */
 export const SHORTCUT_ENTRY: Record<PlayerColor, number> = {
-  red: 51,
-  yellow: 0,
-  green: 17,
-  blue: 34,
+  red: 0,
+  yellow: 17,
+  green: 34,
+  blue: 51,
 };
 
 /**
@@ -70,12 +70,17 @@ export function getMarbleCoordinates(
     return getTrackCoordinates(positionIndex);
   }
 
-  // Shortcut positions - center shortcut path
+  // Shortcut positions - center shortcut path (legacy, now using center)
   if (positionType === 'shortcut' && positionIndex !== null) {
     return getShortcutCoordinates(color, positionIndex);
   }
 
-  // Home positions - final 4 spaces
+  // Center position - the center space shortcut
+  if (positionType === 'center') {
+    return { x: 300, y: 300 };
+  }
+
+  // Home positions - final 5 spaces
   if (positionType === 'home' && positionIndex !== null) {
     return getHomeCoordinates(color, positionIndex);
   }

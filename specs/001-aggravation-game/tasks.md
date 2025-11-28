@@ -291,7 +291,7 @@
 ### Performance Optimization
 
 - [X] T119 [P] Add React.memo to Marble component in components/game/Marble.tsx: prevent re-renders when position unchanged per research.md performance
-- [ ] T120 [P] Optimize Board SVG rendering in components/game/Board.tsx: reduce DOM nodes, use CSS transforms for animations per spec.md SC-012
+- [X] T120 [P] Optimize Board SVG rendering in components/game/Board.tsx: reduce DOM nodes, use CSS transforms for animations per spec.md SC-012
 - [X] T121 Implement code splitting in app/ pages: use Next.js dynamic imports for heavy components (Board, VictoryScreen) per research.md Next.js features
 - [X] T122 Add loading states in app/game/[id]/loading.tsx: skeleton UI while game data loads per plan.md UX consistency
 
@@ -318,7 +318,7 @@
 ### Documentation
 
 - [X] T134 [P] Update README.md in repository root: add project description, setup instructions, deployment guide from quickstart.md
-- [ ] T135 [P] Add code comments to complex functions: board position calculations, move validation, RPC functions per plan.md code quality
+- [X] T135 [P] Add code comments to complex functions: board position calculations, move validation, RPC functions per plan.md code quality
 - [ ] T136 Verify quickstart.md accuracy: test all 8 setup steps on fresh clone, update any outdated commands per spec.md SC-011
 
 ### Final Validation

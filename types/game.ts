@@ -5,7 +5,7 @@ export type GameStatus = 'waiting' | 'active' | 'completed' | 'abandoned';
 
 export type PlayerColor = 'red' | 'blue' | 'green' | 'yellow';
 
-export type PositionType = 'base' | 'track' | 'shortcut' | 'home';
+export type PositionType = 'base' | 'track' | 'shortcut' | 'home' | 'center';
 
 export interface Game {
   id: string;
@@ -63,6 +63,8 @@ export interface MoveResult {
   captured_marble_id: string | null;
   player_won: boolean;
   next_turn_player_id: string | null;
+  extra_turn?: boolean;           // True if player rolled 6 and gets another turn
+  is_fat_city_hop?: boolean;      // True if move was a Fat City hop shortcut
 }
 
 export interface DiceRollResult {

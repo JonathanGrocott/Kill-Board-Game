@@ -7,10 +7,11 @@
  * - Base exit rules (1 or 6)
  * - Exact home entry rules
  * - Collision with own marbles
+ * - Cannot pass own marbles on track
  */
 
 import type { Marble, Player, PlayerColor, PositionType } from '@/types/game';
-import { calculateNewPosition, isSamePosition } from './board';
+import { calculateNewPosition, isSamePosition, TRACK_LENGTH } from './board';
 
 export interface MoveValidation {
   isValid: boolean;
@@ -19,6 +20,52 @@ export interface MoveValidation {
     positionType: PositionType;
     positionIndex: number | null;
   };
+}
+
+/**
+ * Check if moving from startPos to endPos would pass through any of the given positions
+ * Handles wrap-around on the circular track (68 spaces)
+ */
+function wouldPassPosition(startPos: number, endPos: number, checkPos: number): boolean {
+  // Normalize positions to handle wrap-around
+  // If endPos < startPos, we've wrapped around
+  if (endPos >= startPos) {
+    // Simple case: no wrap-around
+    // Check if checkPos is strictly between start and end (exclusive of both)
+    return checkPos > startPos && checkPos < endPos;
+  } else {
+    // Wrap-around case: moving from e.g., 65 to 3
+    // checkPos is passed if it's > startPos OR < endPos
+    return checkPos > startPos || checkPos < endPos;
+  }
+}
+
+/**
+ * Check if a marble would pass any of its own marbles during movement on track
+ */
+function wouldPassOwnMarble(
+  marble: Marble,
+  diceRoll: number,
+  ownMarbles: Marble[]
+): { wouldPass: boolean; passedMarblePos?: number } {
+  // Only applies to track movement
+  if (marble.position_type !== 'track' || marble.position_index === null) {
+    return { wouldPass: false };
+  }
+
+  const startPos = marble.position_index;
+  const endPos = (startPos + diceRoll) % TRACK_LENGTH;
+
+  // Check each own marble on the track
+  for (const otherMarble of ownMarbles) {
+    if (otherMarble.position_type === 'track' && otherMarble.position_index !== null) {
+      if (wouldPassPosition(startPos, endPos, otherMarble.position_index)) {
+        return { wouldPass: true, passedMarblePos: otherMarble.position_index };
+      }
+    }
+  }
+
+  return { wouldPass: false };
 }
 
 /**
@@ -48,8 +95,19 @@ export function canMoveMarble(
     };
   }
 
-  // Check for collision with own marbles
+  // Get own marbles (excluding the moving marble)
   const ownMarbles = allMarbles.filter(m => m.player_id === marble.player_id && m.id !== marble.id);
+
+  // Check if would pass own marble on track (not allowed)
+  const passCheck = wouldPassOwnMarble(marble, diceRoll, ownMarbles);
+  if (passCheck.wouldPass) {
+    return {
+      isValid: false,
+      reason: `Cannot pass your own marble at position ${passCheck.passedMarblePos}`,
+    };
+  }
+
+  // Check for collision with own marbles (landing on same spot)
   const wouldCollideWithOwn = ownMarbles.some(m =>
     isSamePosition(
       calculatedMove.positionType,
@@ -86,7 +144,17 @@ export function getValidMarbles(
   const playerMarbles = allMarbles.filter(m => m.player_id === player.id);
 
   return playerMarbles.filter(marble => {
-    // Check if marble has completed a lap (simplified: track if on shortcut or home)
+    // Special case: marbles in center can only exit with roll of 1
+    if (marble.position_type === 'center') {
+      if (diceRoll !== 1) {
+        console.log(`[Validation] Marble ${marble.id} (center) invalid: Need 1 to exit center`);
+        return false;
+      }
+      console.log(`[Validation] Marble ${marble.id} (center) VALID - can exit with 1`);
+      return true;
+    }
+
+    // Check if marble has completed a lap (simplified: if on home or has passed start position)
     const hasCompletedLap = marble.position_type === 'shortcut' || marble.position_type === 'home';
 
     const validation = canMoveMarble(
@@ -129,6 +197,7 @@ export function hasAnyValidMoves(
 
 /**
  * Find opponent marble at a position (for capture detection)
+ * UPDATED: Can capture on track and center (not in base or home)
  */
 export function getOpponentMarbleAtPosition(
   positionType: PositionType,
@@ -136,11 +205,12 @@ export function getOpponentMarbleAtPosition(
   playerId: string,
   allMarbles: Marble[]
 ): Marble | null {
-  // Can't capture in base, shortcut, or home zones
-  if (positionType !== 'track') {
+  // Can't capture in base or home zones
+  if (positionType === 'base' || positionType === 'home') {
     return null;
   }
 
+  // Can capture on track or center
   const opponentMarble = allMarbles.find(
     m =>
       m.player_id !== playerId &&
@@ -152,16 +222,11 @@ export function getOpponentMarbleAtPosition(
 
 /**
  * Check if a position is a safe space (no captures allowed)
- * In standard Aggravation, starting positions are safe
+ * UPDATED: Only Home Zone is safe - Pot, Fat City, Center are all capturable
  */
 export function isSafeSpace(positionType: PositionType, positionIndex: number | null): boolean {
-  // Starting positions (0, 17, 34, 51) are safe spaces
-  if (positionType === 'track' && positionIndex !== null) {
-    return positionIndex % 17 === 0;
-  }
-
-  // Base, shortcut, and home are always safe
-  return positionType !== 'track';
+  // Only home zone is safe from captures
+  return positionType === 'home';
 }
 
 /**
