@@ -44,11 +44,9 @@ export default function HomePage() {
     <main className="landing-shell">
       <section className="landing-copy">
         <div className="eyebrow">THE MARBLE GAME OF CALCULATED REVENGE</div>
-        <h1>KILL<span className="title-dot">●</span></h1>
-        <p className="lead">Race five marbles Up Tight. Block your friends, steal the shortcuts, and land the exact roll that sends them back to Base.</p>
-        <div className="rule-chips">
-          <span>1 or 6 gets out</span><span>6 rolls again</span><span>Exact landing kills</span>
-        </div>
+        <h1 className="kill-wordmark"><span className="sr-only">Kill</span><span aria-hidden="true">K</span><span aria-hidden="true">I</span><span aria-hidden="true">L</span><span aria-hidden="true">L</span></h1>
+        <p className="lead">Five marbles. One way home. No mercy.</p>
+        <p className="up-tight-signoff">GET UP TIGHT.</p>
       </section>
 
       <section className="start-card" aria-label="Start playing">
@@ -62,8 +60,8 @@ export default function HomePage() {
           autoComplete="nickname"
         />
         <div className="primary-actions">
-          <button className="button button-primary" onClick={() => create(false)} disabled={pending}>Create a room</button>
-          <button className="button button-warm" onClick={() => create(true)} disabled={pending}>Play three bots</button>
+          <button className="button button-primary" onClick={() => create(false)} disabled={pending}>Host game</button>
+          <button className="button button-warm" onClick={() => create(true)} disabled={pending}>Play bots</button>
         </div>
         <div className="join-divider"><span>or join friends</span></div>
         <div className="join-row">
@@ -77,13 +75,6 @@ export default function HomePage() {
           <button className="button button-ghost" onClick={openRoom}>Join</button>
         </div>
         {error && <p className="form-error" role="alert">{error}</p>}
-        <p className="privacy-note">No account. No history. Rooms disappear after play.</p>
-      </section>
-
-      <section className="how-strip">
-        <article><b>01</b><span>Get out</span><p>Roll a 1 or 6 to move from Base to your Pot.</p></article>
-        <article><b>02</b><span>Take a risk</span><p>Use Fat City and Center to cut across the board.</p></article>
-        <article><b>03</b><span>Get Up Tight</span><p>Pack all five marbles safely into Home first.</p></article>
       </section>
     </main>
   );

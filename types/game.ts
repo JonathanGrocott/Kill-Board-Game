@@ -1,5 +1,10 @@
 export const PLAYER_COLORS = ["red", "blue", "green", "yellow"] as const;
 export type PlayerColor = (typeof PLAYER_COLORS)[number];
+export const MARBLE_STYLES = ["swirl", "cat-eye", "pearl"] as const;
+export type MarbleStyle = (typeof MARBLE_STYLES)[number];
+export const DIE_STYLES = ["team", "ivory", "amber", "forest"] as const;
+export type DieStyle = (typeof DIE_STYLES)[number];
+export const DEFAULT_DIE_STYLES: DieStyle[] = ["team", "ivory", "amber"];
 export type GameStatus = "waiting" | "active" | "completed";
 export type PositionArea = "base" | "track" | "center" | "home";
 
@@ -21,6 +26,9 @@ export interface Player {
   color: PlayerColor;
   seat: number;
   isBot: boolean;
+  marbleStyle?: MarbleStyle;
+  diceStyles?: DieStyle[];
+  selectedDieStyle?: DieStyle;
   tokenHash?: string;
 }
 
@@ -29,6 +37,13 @@ export interface GameEvent {
   at: number;
   message: string;
   playerId?: string;
+}
+
+export interface DoorstepChallenge {
+  playerId: string;
+  marbleId: string;
+  attempts: number;
+  pendingResolution: boolean;
 }
 
 export interface GameState {
@@ -40,6 +55,7 @@ export interface GameState {
   currentPlayerId: string | null;
   dice: number | null;
   winnerPlayerId: string | null;
+  doorstepChallenge?: DoorstepChallenge | null;
   createdAt: number;
   updatedAt: number;
   events: GameEvent[];

@@ -34,6 +34,22 @@ export const DRIVEWAY_STARTS: Record<PlayerColor, number> = {
 
 export interface BoardPoint { x: number; y: number }
 
+const VIEW_ROTATION_QUARTERS: Record<PlayerColor, number> = {
+  red: 0,
+  blue: 1,
+  green: 2,
+  yellow: 3,
+};
+
+/** Rotates board geometry so the viewer's own Home is always at the bottom. */
+export function boardPointForViewer(point: BoardPoint, viewerColor: PlayerColor = "red"): BoardPoint {
+  let rotated = point;
+  for (let turn = 0; turn < VIEW_ROTATION_QUARTERS[viewerColor]; turn += 1) {
+    rotated = { x: 50 + (rotated.y - 50), y: 50 - (rotated.x - 50) };
+  }
+  return rotated;
+}
+
 export function getTrackPoints(): BoardPoint[] {
   const points: BoardPoint[] = [];
   const center = 50;
@@ -67,10 +83,10 @@ export const HOME_POINTS: Record<PlayerColor, BoardPoint[]> = {
 };
 
 export const BASE_POINTS: Record<PlayerColor, BoardPoint[]> = {
-  red: [{x:14,y:79},{x:20,y:76},{x:26,y:79},{x:17,y:85},{x:23,y:85}],
-  blue: [{x:14,y:21},{x:20,y:15},{x:26,y:21},{x:17,y:27},{x:23,y:27}],
-  green: [{x:74,y:21},{x:80,y:15},{x:86,y:21},{x:77,y:27},{x:83,y:27}],
-  yellow: [{x:74,y:79},{x:80,y:73},{x:86,y:79},{x:77,y:85},{x:83,y:85}],
+  red: [{x:74,y:79},{x:80,y:73},{x:86,y:79},{x:77,y:85},{x:83,y:85}],
+  blue: [{x:14,y:79},{x:20,y:76},{x:26,y:79},{x:17,y:85},{x:23,y:85}],
+  green: [{x:14,y:21},{x:20,y:15},{x:26,y:21},{x:17,y:27},{x:23,y:27}],
+  yellow: [{x:74,y:21},{x:80,y:15},{x:86,y:21},{x:77,y:27},{x:83,y:27}],
 };
 
 export const CENTER_POINT = { x: 50, y: 50 };

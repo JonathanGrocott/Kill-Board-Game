@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
-import type { GameState, Player, PublicGameState } from "@/types/game";
-import { PLAYER_COLORS } from "@/types/game";
-import { addPlayerMarbles, getLegalMoves, startGame } from "@/lib/game/rules";
+import type { DieStyle, GameState, Player, PublicGameState } from "@/types/game";
+import { DEFAULT_DIE_STYLES, MARBLE_STYLES, PLAYER_COLORS } from "@/types/game";
+import { addPlayerMarbles, getLegalMoves } from "@/lib/game/rules";
 
 const ACTIVE_TTL_MS = 12 * 60 * 60 * 1000;
 const COMPLETED_TTL_MS = 60 * 60 * 1000;
@@ -54,12 +54,17 @@ function cleanName(name: string) {
 }
 
 async function makePlayer(name: string, seat: number, isBot: boolean, token?: string): Promise<Player> {
+  const marbleStyle = MARBLE_STYLES[seat % MARBLE_STYLES.length];
+  const diceStyles = [...DEFAULT_DIE_STYLES] as DieStyle[];
   return {
     id: crypto.randomUUID(),
     name: cleanName(name),
     color: PLAYER_COLORS[seat],
     seat,
     isBot,
+    marbleStyle,
+    diceStyles,
+    selectedDieStyle: "team",
     tokenHash: token ? await hashToken(token) : undefined,
   };
 }
@@ -94,7 +99,6 @@ export async function createGame(name: string, practice: boolean) {
         state.players.push(bot);
         addPlayerMarbles(state, bot);
       }
-      startGame(state);
     }
     const result = await db().prepare(
       "INSERT OR IGNORE INTO games (code, state_json, version, created_at, updated_at, expires_at) VALUES (?, ?, 1, ?, ?, ?)"
@@ -134,13 +138,22 @@ export async function publicGame(state: GameState, token: string | null): Promis
     createdAt: state.createdAt,
     updatedAt: state.updatedAt,
     events: state.events,
-    players: state.players.map((player) => ({
-      id: player.id,
-      name: player.name,
-      color: player.color,
-      seat: player.seat,
-      isBot: player.isBot,
-    })),
+    players: state.players.map((player) => {
+      const configuredDice = player.diceStyles?.length ? [...player.diceStyles] : [...DEFAULT_DIE_STYLES];
+      const diceStyles = player.isBot && !configuredDice.includes("team")
+        ? ["team" as DieStyle, ...configuredDice].slice(0, 3)
+        : configuredDice;
+      return {
+        id: player.id,
+        name: player.name,
+        color: player.color,
+        seat: player.seat,
+        isBot: player.isBot,
+        marbleStyle: player.marbleStyle ?? "swirl",
+        diceStyles,
+        selectedDieStyle: player.isBot ? "team" : player.selectedDieStyle ?? "team",
+      };
+    }),
     legalMoves,
     viewerPlayerId: viewer?.id ?? null,
   };
@@ -149,13 +162,14 @@ export async function publicGame(state: GameState, token: string | null): Promis
 export async function mutateGame(
   code: string,
   actionId: string,
-  mutate: (state: GameState) => void | Promise<void>,
+  mutate: (state: GameState) => boolean | void | Promise<boolean | void>,
 ) {
   await ensureSchema();
   for (let attempt = 0; attempt < 4; attempt += 1) {
     const { state, version } = await loadGame(code);
     if (state.processedActionIds.includes(actionId)) return state;
-    await mutate(state);
+    const shouldCommit = await mutate(state);
+    if (shouldCommit === false) return state;
     state.processedActionIds = [...state.processedActionIds.slice(-39), actionId];
     state.updatedAt = Date.now();
     const expiresAt = Date.now() + (state.status === "completed" ? COMPLETED_TTL_MS : ACTIVE_TTL_MS);
@@ -179,8 +193,11 @@ export async function joinGame(code: string, name: string, actionId: string) {
       throw new Error("That name is already being used in this room.");
     }
     const seat = game.players.length;
+    const color = PLAYER_COLORS.find((candidate) => !game.players.some((player) => player.color === candidate));
+    if (!color) throw new Error("No color is available.");
     const player: Player = {
-      id: crypto.randomUUID(), name: normalized, color: PLAYER_COLORS[seat], seat, isBot: false, tokenHash,
+      id: crypto.randomUUID(), name: normalized, color, seat, isBot: false, tokenHash,
+      marbleStyle: "swirl", diceStyles: [...DEFAULT_DIE_STYLES], selectedDieStyle: "team",
     };
     joinedId = player.id;
     game.players.push(player);

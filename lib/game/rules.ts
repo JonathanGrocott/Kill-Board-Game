@@ -8,6 +8,7 @@ import {
   describeTrackSpace,
   samePosition,
 } from "./board";
+import { PLAYER_COLORS } from "@/types/game";
 import type { GameEvent, GameState, Marble, MoveOption, Player, PlayerColor, Position } from "@/types/game";
 
 const pos = (area: Position["area"], index: number | null = null): Position => ({ area, index });
@@ -96,10 +97,11 @@ export function getLegalMoves(state: GameState, playerId: string, roll: number):
       if (option) options.push(option);
     }
 
-    if (marble.position.area === "track" && roll === 3 && marble.position.index === FAT_CITIES[player.color]) {
+    if (marble.position.area === "track" && roll <= 3 && marble.position.index === FAT_CITIES[player.color]) {
       const start = FAT_CITIES[player.color];
-      const shortcut = [1, 2, 3].map((hop) => pos("track", (start + hop * 17) % TRACK_LENGTH));
-      const option = makeOption(state, marble, "fat-city", shortcut, `Take the Fat City shortcut to your Driveway`);
+      const shortcut = Array.from({ length: roll }, (_, hop) => pos("track", (start + (hop + 1) * 17) % TRACK_LENGTH));
+      const destinationLabel = roll === 3 ? "your Driveway" : `the ${roll === 1 ? "first" : "second"} Fat City clockwise`;
+      const option = makeOption(state, marble, "fat-city", shortcut, `Take the Fat City shortcut to ${destinationLabel}`);
       if (option) options.push(option);
     }
 
@@ -125,13 +127,65 @@ function event(message: string, playerId?: string): GameEvent {
 }
 
 function advanceTurn(state: GameState) {
-  const index = state.players.findIndex((player) => player.id === state.currentPlayerId);
-  const next = state.players[(index + 1) % state.players.length];
+  const current = state.players.find((player) => player.id === state.currentPlayerId);
+  const currentColorIndex = PLAYER_COLORS.indexOf(current?.color ?? "red");
+  let next = current;
+  for (let step = 1; step <= PLAYER_COLORS.length; step += 1) {
+    const nextColor = PLAYER_COLORS[(currentColorIndex + step) % PLAYER_COLORS.length];
+    const candidate = state.players.find((player) => player.color === nextColor);
+    if (candidate) {
+      next = candidate;
+      break;
+    }
+  }
+  if (!next) next = state.players[0];
   state.currentPlayerId = next.id;
   state.dice = null;
 }
 
-export function rollForPlayer(state: GameState, playerId: string, random: () => number = Math.random) {
+function captureAt(state: GameState, player: Player, destination: Position) {
+  if (destination.area === "base" || destination.area === "home") return;
+  const killed = state.marbles.find((item) => item.playerId !== player.id && samePosition(item.position, destination));
+  if (!killed) return;
+  const isDoorstepKilling = state.doorstepChallenge?.marbleId === killed.id;
+  killed.position = pos("base");
+  if (isDoorstepKilling) state.doorstepChallenge = null;
+  const victim = state.players.find((item) => item.id === killed.playerId)!;
+  state.events.push(event(`${player.name} killed ${victim.name}'s marble!`, player.id));
+  const allBackInBase = state.marbles
+    .filter((item) => item.playerId === victim.id)
+    .every((item) => item.position.area === "base");
+  if (allBackInBase) {
+    state.events.push(event(`${victim.name} has all five marbles back in Base. Welcome to the Game!`, victim.id));
+  }
+  if (isDoorstepKilling) {
+    state.events.push(event(`${player.name} made a Doorstep Killing on ${victim.name}!`, player.id));
+  }
+}
+
+function hasFourUpTight(state: GameState, playerId: string) {
+  const homeIndexes = state.marbles
+    .filter((item) => item.playerId === playerId && item.position.area === "home")
+    .map((item) => Number(item.position.index))
+    .sort((a, b) => a - b);
+  return homeIndexes.length === 4 && homeIndexes.every((index, position) => index === position + 1);
+}
+
+function isConstipated(state: GameState, player: Player, roll: number) {
+  return state.marbles
+    .filter((marble) => marble.playerId === player.id)
+    .some((marble) => {
+      const path = normalPath(marble, player.color, roll);
+      return path?.some((position) => position.area === "home" && ownMarbleAt(state, player.id, position, marble.id)) ?? false;
+    });
+}
+
+export function rollForPlayer(
+  state: GameState,
+  playerId: string,
+  random: () => number = Math.random,
+  deferNoMoveAdvance = false,
+) {
   if (state.status !== "active" || state.currentPlayerId !== playerId) throw new Error("It is not your turn.");
   if (state.dice !== null) throw new Error("The dice has already been rolled.");
   const player = state.players.find((item) => item.id === playerId)!;
@@ -139,9 +193,23 @@ export function rollForPlayer(state: GameState, playerId: string, random: () => 
   state.dice = roll;
   state.events.push(event(`${player.name} rolled ${roll}.`, player.id));
   const moves = getLegalMoves(state, playerId, roll);
+  const challenge = state.doorstepChallenge;
+  if (challenge?.playerId === playerId && !challenge.pendingResolution) {
+    challenge.attempts += 1;
+    state.events.push(event(challenge.attempts === 3
+      ? `${player.name} is on their final Doorstep try and rolled ${roll}.`
+      : `${player.name} used Doorstep try ${challenge.attempts} of 3 and rolled ${roll}.`, player.id));
+    if (roll !== 1) {
+      challenge.pendingResolution = true;
+      state.updatedAt = Date.now();
+      return { roll, moves: [] };
+    }
+  }
   if (moves.length === 0) {
-    state.events.push(event(`${player.name} had no legal move.`, player.id));
-    advanceTurn(state);
+    state.events.push(event(isConstipated(state, player, roll)
+      ? `${player.name} is constipated: their own marbles block Home.`
+      : `${player.name} had no legal move.`, player.id));
+    if (!deferNoMoveAdvance) advanceTurn(state);
   }
   state.updatedAt = Date.now();
   return { roll, moves };
@@ -155,15 +223,21 @@ export function applyMove(state: GameState, playerId: string, optionId: string) 
   const player = state.players.find((item) => item.id === playerId)!;
   const marble = state.marbles.find((item) => item.id === option.marbleId)!;
 
-  const killed = state.marbles.find((item) => item.playerId !== playerId && samePosition(item.position, option.destination));
-  if (killed) {
-    killed.position = pos("base");
-    const victim = state.players.find((item) => item.id === killed.playerId)!;
-    state.events.push(event(`${player.name} killed ${victim.name}'s marble!`, player.id));
-  }
+  captureAt(state, player, option.destination);
 
   marble.position = option.destination;
   state.events.push(event(`${player.name}: ${option.label}.`, player.id));
+  if (option.destination.area === "track" && option.destination.index === FAT_CITIES[player.color]) {
+    state.events.push(event(`${player.name} reached their own Fat City.`, player.id));
+  }
+  const startsDoorstepChallenge =
+    option.destination.area === "track" &&
+    option.destination.index === DOORSTEPS[player.color] &&
+    hasFourUpTight(state, playerId);
+  if (startsDoorstepChallenge) {
+    state.doorstepChallenge = { playerId, marbleId: marble.id, attempts: 0, pendingResolution: false };
+    state.events.push(event(`${player.name} reached Doorstep with four Up Tight and has three chances to roll 1.`, player.id));
+  }
 
   const isWinner = state.marbles
     .filter((item) => item.playerId === playerId)
@@ -173,6 +247,7 @@ export function applyMove(state: GameState, playerId: string, optionId: string) 
     state.winnerPlayerId = playerId;
     state.currentPlayerId = null;
     state.dice = null;
+    state.doorstepChallenge = null;
     state.events.push(event(`${player.name} is Up Tight and wins!`, player.id));
   } else if (roll === 6) {
     state.dice = null;
@@ -185,6 +260,28 @@ export function applyMove(state: GameState, playerId: string, optionId: string) 
   return option;
 }
 
+export function resolveDoorstepChallenge(state: GameState, playerId: string) {
+  const challenge = state.doorstepChallenge;
+  if (!challenge || challenge.playerId !== playerId || !challenge.pendingResolution || state.currentPlayerId !== playerId) {
+    throw new Error("There is no Doorstep try to resolve.");
+  }
+  const player = state.players.find((item) => item.id === playerId)!;
+  const marble = state.marbles.find((item) => item.id === challenge.marbleId)!;
+  if (challenge.attempts >= 3) {
+    const pot = pos("track", POTS[player.color]);
+    captureAt(state, player, pot);
+    marble.position = pot;
+    state.events.push(event(`${player.name} missed the final try and goes back to their Pot.`, player.id));
+    state.doorstepChallenge = null;
+    advanceTurn(state);
+  } else {
+    challenge.pendingResolution = false;
+    advanceTurn(state);
+  }
+  state.updatedAt = Date.now();
+  state.events = state.events.slice(-30);
+}
+
 export function addPlayerMarbles(state: GameState, player: Player) {
   for (let number = 1; number <= MARBLES_PER_PLAYER; number += 1) {
     state.marbles.push({ id: crypto.randomUUID(), playerId: player.id, number, position: pos("base") });
@@ -195,8 +292,38 @@ export function startGame(state: GameState) {
   if (state.status !== "waiting") throw new Error("This game has already started.");
   if (state.players.length < 2) throw new Error("Add at least one player or bot first.");
   state.status = "active";
-  state.currentPlayerId = state.players[0].id;
-  state.events.push(event(`${state.players[0].name} goes first.`));
+  const first = state.players.find((player) => player.id === state.hostPlayerId) ?? state.players[0];
+  state.currentPlayerId = first.id;
+  state.events.push(event(`${first.name} goes first.`));
+  state.updatedAt = Date.now();
+}
+
+export function choosePlayerColor(state: GameState, playerId: string, color: PlayerColor) {
+  const player = state.players.find((candidate) => candidate.id === playerId);
+  if (!player) throw new Error("Player not found.");
+  const holder = state.players.find((candidate) => candidate.id !== playerId && candidate.color === color);
+  if (holder && !holder.isBot) throw new Error("That color is already taken by another player.");
+  const previousColor = player.color;
+  player.color = color;
+  if (holder) holder.color = previousColor;
+}
+
+export function setupEndgameTest(state: GameState) {
+  if (state.players.length < 2) throw new Error("Add players before loading the endgame test.");
+  for (const player of state.players) {
+    const marbles = state.marbles
+      .filter((marble) => marble.playerId === player.id)
+      .sort((a, b) => a.number - b.number);
+    marbles.slice(0, 4).forEach((marble, index) => { marble.position = pos("home", index + 1); });
+    marbles[4].position = pos("track", (DOORSTEPS[player.color] - 1 + TRACK_LENGTH) % TRACK_LENGTH);
+  }
+  state.status = "active";
+  state.currentPlayerId = state.hostPlayerId;
+  state.dice = null;
+  state.winnerPlayerId = null;
+  state.doorstepChallenge = null;
+  state.events.push(event("Endgame test loaded: every player has four marbles packed in Home.", state.hostPlayerId));
+  state.events = state.events.slice(-30);
   state.updatedAt = Date.now();
 }
 
@@ -224,9 +351,19 @@ export function chooseBotMove(state: GameState, playerId: string, moves: MoveOpt
 export function playBotStep(state: GameState, random: () => number = Math.random) {
   const bot = state.players.find((player) => player.id === state.currentPlayerId);
   if (!bot?.isBot) throw new Error("The current player is not a bot.");
-  const result = rollForPlayer(state, bot.id, random);
-  if (state.currentPlayerId === bot.id && state.dice !== null) {
-    const choice = chooseBotMove(state, bot.id, result.moves, random);
-    if (choice) applyMove(state, bot.id, choice.id);
+  if (state.doorstepChallenge?.playerId === bot.id && state.doorstepChallenge.pendingResolution) {
+    resolveDoorstepChallenge(state, bot.id);
+    return;
+  }
+  if (state.dice === null) {
+    rollForPlayer(state, bot.id, random, true);
+    return;
+  }
+  const moves = getLegalMoves(state, bot.id, state.dice);
+  const choice = chooseBotMove(state, bot.id, moves, random);
+  if (choice) applyMove(state, bot.id, choice.id);
+  else {
+    advanceTurn(state);
+    state.updatedAt = Date.now();
   }
 }

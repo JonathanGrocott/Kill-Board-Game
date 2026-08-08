@@ -1,9 +1,14 @@
 "use client";
 
-import { use, useCallback, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Board } from "@/components/game/Board";
-import type { PublicGameState } from "@/types/game";
+import { BoardDie, DiceRack } from "@/components/game/LuckyDice";
+import { KitPicker } from "@/components/game/KitPicker";
+import { samePosition } from "@/lib/game/board";
+import { automaticDestinationMove } from "@/lib/game/interaction";
+import { DEFAULT_DIE_STYLES, PLAYER_COLORS } from "@/types/game";
+import type { DieStyle, MarbleStyle, PlayerColor, Position, PublicGameState } from "@/types/game";
 
 interface GamePageProps { params: Promise<{ code: string }> }
 
@@ -15,11 +20,21 @@ export default function GamePage({ params }: GamePageProps) {
   const [token, setToken] = useState("");
   const [joinName, setJoinName] = useState("");
   const [selectedMarbleId, setSelectedMarbleId] = useState<string | null>(null);
+  const [selectedDestination, setSelectedDestination] = useState<Position | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [rolling, setRolling] = useState(false);
+  const [botRolling, setBotRolling] = useState(false);
+  const [dieLandingSlot, setDieLandingSlot] = useState(0);
+  const rollingRef = useRef(false);
+  const [selectedDie, setSelectedDie] = useState<DieStyle | null>(null);
+  const [callout, setCallout] = useState<string | null>(null);
+  const seenEventRef = useRef<string | null>(null);
+  const eventsInitializedRef = useRef(false);
 
   const load = useCallback(async (knownToken?: string) => {
+    if (rollingRef.current) return;
     const playerToken = knownToken ?? localStorage.getItem(`kill-token:${code}`) ?? "";
     const response = await fetch(`/api/games/${code}`, { headers: playerToken ? { "x-player-token": playerToken } : {} });
     const result = await response.json() as { game?: PublicGameState; error?: string };
@@ -56,38 +71,170 @@ export default function GamePage({ params }: GamePageProps) {
     finally { setPending(false); }
   }
 
-  const act = useCallback(async (type: "add-bot" | "start" | "roll" | "move" | "bot-step", moveId?: string) => {
+  const act = useCallback(async (
+    type: "add-bot" | "customize" | "start" | "roll" | "move" | "bot-step" | "resolve-doorstep" | "setup-endgame",
+    details: {
+      moveId?: string;
+      marbleStyle?: MarbleStyle;
+      color?: PlayerColor;
+      diceStyles?: DieStyle[];
+      dieStyle?: DieStyle;
+      expectedUpdatedAt?: number;
+      expectedPlayerId?: string | null;
+      expectedDice?: number | null;
+    } = {},
+  ) => {
     if (!token || pending) return;
+    const isDiceRoll = type === "roll";
     setPending(true); setError("");
+    if (isDiceRoll) { rollingRef.current = true; setRolling(true); }
     try {
+      const startedAt = Date.now();
       const response = await fetch(`/api/games/${code}/action`, {
         method: "POST",
         headers: { "content-type": "application/json", "x-player-token": token },
-        body: JSON.stringify({ type, moveId, actionId: crypto.randomUUID() }),
+        body: JSON.stringify({ type, ...details, actionId: crypto.randomUUID() }),
       });
       const result = await response.json() as { game?: PublicGameState; error?: string };
       if (!response.ok || !result.game) throw new Error(result.error ?? "Action failed.");
+      if (isDiceRoll) await new Promise((resolve) => window.setTimeout(resolve, Math.max(0, 1150 - (Date.now() - startedAt))));
       setGame(result.game);
       setSelectedMarbleId(null);
+      setSelectedDestination(null);
+      if (type === "move") setCallout(null);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Action failed."); }
-    finally { setPending(false); }
+    finally {
+      if (isDiceRoll) { rollingRef.current = false; setRolling(false); }
+      setPending(false);
+    }
   }, [code, pending, token]);
 
   const currentPlayer = game?.players.find((player) => player.id === game.currentPlayerId);
-  useEffect(() => {
-    if (!game || game.status !== "active" || !currentPlayer?.isBot || pending) return;
-    const timer = window.setTimeout(() => void act("bot-step"), 900);
-    return () => window.clearTimeout(timer);
-  }, [act, currentPlayer?.id, currentPlayer?.isBot, game, pending]);
-
   const viewer = game?.players.find((player) => player.id === game.viewerPlayerId);
   const isHost = viewer?.id === game?.hostPlayerId;
+  const gameStatus = game?.status;
+  const botTurnUpdatedAt = game?.updatedAt;
+  const botTurnPlayerId = game?.currentPlayerId;
+  const botTurnDice = game?.dice;
+  useEffect(() => {
+    if (gameStatus !== "active" || !currentPlayer?.isBot || !isHost || pending || botTurnUpdatedAt === undefined) return;
+    const timer = window.setTimeout(() => void act("bot-step", {
+      expectedUpdatedAt: botTurnUpdatedAt,
+      expectedPlayerId: botTurnPlayerId,
+      expectedDice: botTurnDice,
+    }), botTurnDice === null ? 850 : 2600);
+    return () => window.clearTimeout(timer);
+  }, [act, botTurnDice, botTurnPlayerId, botTurnUpdatedAt, currentPlayer?.id, currentPlayer?.isBot, gameStatus, isHost, pending]);
+
+  const botRollSignature = currentPlayer?.isBot && game?.dice !== null
+    ? `${currentPlayer.id}:${game.updatedAt}:${game.dice}`
+    : null;
+  useEffect(() => {
+    const showTimer = window.setTimeout(() => {
+      setBotRolling(Boolean(botRollSignature));
+      if (botRollSignature) setDieLandingSlot((slot) => (slot + 1 + Math.floor(Math.random() * 7)) % 8);
+    }, 0);
+    if (!botRollSignature) return () => window.clearTimeout(showTimer);
+    const hideTimer = window.setTimeout(() => setBotRolling(false), 1150);
+    return () => {
+      window.clearTimeout(showTimer);
+      window.clearTimeout(hideTimer);
+    };
+  }, [botRollSignature]);
+
+  const doorstepPending = game?.doorstepChallenge?.pendingResolution;
+  const doorstepPlayerId = game?.doorstepChallenge?.playerId;
+  const doorstepUpdatedAt = game?.updatedAt;
+  const doorstepDice = game?.dice;
+  const viewerId = viewer?.id;
+  useEffect(() => {
+    if (!doorstepPending || doorstepPlayerId !== viewerId || gameStatus !== "active" || pending || doorstepUpdatedAt === undefined) return;
+    const timer = window.setTimeout(() => void act("resolve-doorstep", {
+      expectedUpdatedAt: doorstepUpdatedAt,
+      expectedPlayerId: doorstepPlayerId,
+      expectedDice: doorstepDice,
+    }), 2100);
+    return () => window.clearTimeout(timer);
+  }, [act, doorstepDice, doorstepPending, doorstepPlayerId, doorstepUpdatedAt, gameStatus, pending, viewerId]);
+
   const selectedMoves = useMemo(() => game?.legalMoves.filter((move) => move.marbleId === selectedMarbleId) ?? [], [game?.legalMoves, selectedMarbleId]);
+  const destinationChoices = useMemo(() => selectedDestination
+    ? game?.legalMoves.filter((move) => (!selectedMarbleId || move.marbleId === selectedMarbleId) && samePosition(move.destination, selectedDestination)) ?? []
+    : [], [game?.legalMoves, selectedDestination, selectedMarbleId]);
+  const destinationIsKill = destinationChoices.some((move) => Boolean(move.capturesPlayerId));
+  const viewerDice = viewer?.diceStyles?.length ? viewer.diceStyles : [...DEFAULT_DIE_STYLES];
+  const activeDie = selectedDie && viewerDice.includes(selectedDie) ? selectedDie : viewer?.selectedDieStyle ?? viewerDice[0];
+  const viewerColorIndex = PLAYER_COLORS.indexOf(viewer?.color ?? "red");
+  const displayedPlayers = game ? [...game.players].sort((a, b) =>
+    ((PLAYER_COLORS.indexOf(a.color) - viewerColorIndex + PLAYER_COLORS.length) % PLAYER_COLORS.length) -
+    ((PLAYER_COLORS.indexOf(b.color) - viewerColorIndex + PLAYER_COLORS.length) % PLAYER_COLORS.length)
+  ) : [];
+  const canViewerRoll = Boolean(game && viewer && currentPlayer?.id === viewer.id && !viewer.isBot && !game.winnerPlayerId && game.dice === null && !pending && !rolling);
+  const rollSelectedDie = useCallback(() => {
+    if (!canViewerRoll || rollingRef.current) return;
+    setDieLandingSlot((slot) => (slot + 1 + Math.floor(Math.random() * 7)) % 8);
+    void act("roll", { dieStyle: activeDie });
+  }, [act, activeDie, canViewerRoll]);
+
+  useEffect(() => {
+    function handleRollShortcut(event: KeyboardEvent) {
+      if (event.code !== "Space" || event.repeat || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.isContentEditable || target?.matches("input, textarea, select, button, a")) return;
+      if (!canViewerRoll || rollingRef.current) return;
+      event.preventDefault();
+      rollSelectedDie();
+    }
+    window.addEventListener("keydown", handleRollShortcut);
+    return () => window.removeEventListener("keydown", handleRollShortcut);
+  }, [canViewerRoll, rollSelectedDie]);
+  const latestCalloutEvent = game?.events.slice(-4).reverse().find((item) => {
+    return /welcome to the game|doorstep killing|doorstep try|final try|back to their pot|killed|own fat city|another roll|up tight|constipated/i.test(item.message);
+  });
+  const latestEventId = latestCalloutEvent?.id;
+  const latestEventMessage = latestCalloutEvent?.message;
+  const gameReady = game !== null;
+
+  useEffect(() => {
+    if (!gameReady) return;
+    if (!eventsInitializedRef.current) {
+      eventsInitializedRef.current = true;
+      seenEventRef.current = latestEventId ?? null;
+      return;
+    }
+    if (!latestEventId || !latestEventMessage || seenEventRef.current === latestEventId) return;
+    seenEventRef.current = latestEventId;
+    const message = latestEventMessage.toLowerCase();
+    const next = message.includes("doorstep killing") ? "DOORSTEP KILLING!"
+      : message.includes("welcome to the game") ? "WELCOME TO THE GAME!"
+      : message.includes("missed the final try") || message.includes("back to their pot") ? "BACK TO POT!"
+      : message.includes("final doorstep try") || message.includes("final try") ? "FINAL TRY!"
+      : message.includes("doorstep try 2") ? "2/3 TRIES"
+      : message.includes("doorstep try 1") ? "1/3 TRIES"
+      : message.includes("killed") ? "KILL!"
+      : message.includes("own fat city") ? "FAT CITYYY!"
+      : message.includes("another roll") ? "SIX AGAIN!"
+      : message.includes("up tight") ? "UP TIGHT!"
+      : message.includes("constipated") ? "CONSTIPATED!"
+      : null;
+    if (!next) return;
+    const showTimer = window.setTimeout(() => setCallout(next), 0);
+    const hideTimer = window.setTimeout(() => setCallout(null), 1800);
+    return () => { window.clearTimeout(showTimer); window.clearTimeout(hideTimer); };
+  }, [gameReady, latestEventId, latestEventMessage]);
 
   function chooseMarble(marbleId: string) {
+    setSelectedDestination(null);
     const moves = game?.legalMoves.filter((move) => move.marbleId === marbleId) ?? [];
-    if (moves.length === 1) void act("move", moves[0].id);
+    if (moves.length === 1) void act("move", { moveId: moves[0].id });
     else setSelectedMarbleId(marbleId);
+  }
+
+  function chooseDestination(position: Position) {
+    const moves = game?.legalMoves.filter((move) => (!selectedMarbleId || move.marbleId === selectedMarbleId) && samePosition(move.destination, position)) ?? [];
+    const automaticMove = automaticDestinationMove(moves);
+    if (automaticMove) void act("move", { moveId: automaticMove.id });
+    else if (moves.length > 1) setSelectedDestination(position);
   }
 
   async function share() {
@@ -114,9 +261,19 @@ export default function GamePage({ params }: GamePageProps) {
     return (
       <main className="lobby-shell">
         <div className="room-code-badge">ROOM {code}</div>
-        <h1>Gather your killers.</h1>
-        <p className="lead-small">Share the link, fill empty seats with bots, then let the host start.</p>
-        <button className="share-card" onClick={share}><span>{copied ? "Link copied" : "Copy invite link"}</span><b>{code}</b></button>
+        <h1>Choose your weapons.</h1>
+        <button className="share-card" onClick={share}><span>{copied ? "Copied" : "Copy game link"}</span><b>{code}</b></button>
+        <KitPicker
+          color={viewer.color}
+          availableColors={PLAYER_COLORS.filter((color) => !game.players.some(
+            (player) => !player.isBot && player.id !== viewer.id && player.color === color,
+          ))}
+          marbleStyle={viewer.marbleStyle ?? "swirl"}
+          diceStyles={viewer.diceStyles?.length ? viewer.diceStyles : [...DEFAULT_DIE_STYLES]}
+          selectedDieStyle={viewer.selectedDieStyle ?? "team"}
+          disabled={pending}
+          onSave={(kit) => void act("customize", kit)}
+        />
         <div className="seat-grid">
           {[0, 1, 2, 3].map((seat) => {
             const player = game.players.find((item) => item.seat === seat);
@@ -133,22 +290,46 @@ export default function GamePage({ params }: GamePageProps) {
   const winner = game.players.find((player) => player.id === game.winnerPlayerId);
   return (
     <main className="game-shell">
-      <header className="game-topbar"><button className="brand-button" onClick={() => router.push("/")}>KILL<span>●</span></button><button className="room-pill" onClick={share}>{copied ? "COPIED" : `ROOM ${code}`}</button></header>
+      <header className="game-topbar"><button className="brand-button brand-kill" onClick={() => router.push("/")} aria-label="Kill home"><strong>KILL</strong></button><button className="room-pill" onClick={share}>{copied ? "COPIED" : `ROOM ${code}`}</button></header>
       <section className="board-column">
         {winner && <div className="victory-banner"><span>UP TIGHT</span><h1>{winner.name} wins.</h1><button className="button button-primary" onClick={() => router.push("/")}>Play again</button></div>}
-        <Board players={game.players} marbles={game.marbles} legalMoves={game.legalMoves} selectedMarbleId={selectedMarbleId} onMarbleClick={chooseMarble} onMoveChoice={(moveId) => void act("move", moveId)} disabled={pending || !!winner} />
+        <Board
+          players={game.players}
+          marbles={game.marbles}
+          legalMoves={game.legalMoves}
+          selectedMarbleId={selectedMarbleId}
+          onMarbleClick={chooseMarble}
+          onDestinationClick={chooseDestination}
+          onBoardRoll={rollSelectedDie}
+          canRoll={canViewerRoll}
+          diceRolling={rolling || botRolling}
+          disabled={pending || !!winner}
+          callout={callout}
+          viewerColor={viewer?.color}
+          diceStage={(rolling || game.dice !== null) && currentPlayer ? <BoardDie styleName={rolling && viewer ? activeDie : currentPlayer.selectedDieStyle ?? "team"} color={currentPlayer.color} result={game.dice} rolling={rolling || botRolling} landingSlot={dieLandingSlot} viewerColor={viewer?.color} /> : null}
+        />
       </section>
       <aside className="control-column">
         <div className={`turn-card turn-${currentPlayer?.color ?? "none"}`}><span>{winner ? "GAME OVER" : currentPlayer?.id === viewer.id ? "YOUR TURN" : "CURRENT TURN"}</span><h2>{winner?.name ?? currentPlayer?.name}</h2>{currentPlayer?.isBot && !winner && <p className="thinking">Bot is thinking…</p>}</div>
         {!winner && currentPlayer?.id === viewer.id && !viewer.isBot && (
           <div className="dice-panel">
-            <button className={`dice ${pending ? "is-rolling" : ""}`} onClick={() => act("roll")} disabled={pending || game.dice !== null} aria-label="Roll dice">{game.dice ?? "ROLL"}</button>
-            <p>{game.dice === null ? "Tap to roll" : game.legalMoves.length === 1 ? "One legal move — take it" : `${game.legalMoves.length} legal moves`}</p>
+            <DiceRack
+              styles={viewerDice}
+              color={viewer.color}
+              selected={activeDie}
+              result={game.dice}
+              rolling={rolling}
+              canRoll={canViewerRoll}
+              onSelect={setSelectedDie}
+              onRoll={rollSelectedDie}
+            />
+            {game.dice !== null && <p>{game.legalMoves.length === 1 ? "ONE MOVE" : `${game.legalMoves.length} MOVES`}</p>}
           </div>
         )}
-        {selectedMoves.length > 1 && <div className="move-choices"><h3>Choose a route</h3>{selectedMoves.map((move) => <button key={move.id} onClick={() => act("move", move.id)}>{move.label}{move.capturesPlayerId && <b> KILL</b>}</button>)}</div>}
-        <div className="player-stack">{game.players.map((player) => { const home = game.marbles.filter((marble) => marble.playerId === player.id && marble.position.area === "home").length; return <div className={`player-row player-${player.color} ${player.id === game.currentPlayerId ? "is-current" : ""}`} key={player.id}><i /><span>{player.name}{player.isBot && <small> BOT</small>}</span><b>{home}/5 HOME</b></div>; })}</div>
-        <div className="event-log"><h3>Table talk</h3>{game.events.slice(-6).reverse().map((item) => <p key={item.id}>{item.message}</p>)}</div>
+        {!selectedDestination && selectedMoves.length > 1 && <div className="move-choices"><h3>Choose a route</h3>{selectedMoves.map((move) => <button key={move.id} onClick={() => act("move", { moveId: move.id })}>{move.label}{move.capturesPlayerId && <b> KILL</b>}</button>)}</div>}
+        {destinationChoices.length > 1 && <div className={`move-choices ${destinationIsKill ? "kill-choices" : ""}`}><h3>{destinationIsKill ? "Choose your killer" : "Choose your move"}</h3>{destinationChoices.map((move) => <button key={move.id} onClick={() => act("move", { moveId: move.id })}>{move.label}{move.capturesPlayerId && <b> KILL</b>}</button>)}</div>}
+        <div className="player-stack">{displayedPlayers.map((player) => { const home = game.marbles.filter((marble) => marble.playerId === player.id && marble.position.area === "home").length; return <div className={`player-row player-${player.color} ${player.id === game.currentPlayerId ? "is-current" : ""}`} key={player.id}><i /><span>{player.name}{player.isBot && <small> BOT</small>}</span><b aria-label={`${home} of 5 Home`}>{home}/5</b></div>; })}</div>
+        <div className="event-log"><h3>Last moves</h3>{game.events.slice(-6).reverse().map((item) => <p key={item.id}>{item.message}</p>)}</div>
         {error && <p className="form-error">{error}</p>}
       </aside>
     </main>

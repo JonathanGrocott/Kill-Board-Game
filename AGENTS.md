@@ -2,6 +2,8 @@
 
 Before changing gameplay, read `GAME_RULES.md`. It is the authoritative rules source captured directly from the game owner. Do not substitute generic Aggravation or Trouble rules.
 
+Before changing the visual design or game feel, read `DESIGN_DIRECTION.md`. It records the owner-selected Family Game Night direction and interaction decisions.
+
 ## Product scope
 
 - Five marbles per player.
