@@ -1,228 +1,232 @@
-/**
- * Game Rules Engine for Aggravation
- * 
- * Implements core game rules:
- * - Turn order management
- * - Capture logic (send opponent to base)
- * - Shortcut eligibility (after 1 lap)
- * - Win condition (4 marbles home)
- * - Turn timeout handling
- */
+import {
+  DOORSTEPS,
+  FAT_CITIES,
+  HOME_SPACES,
+  MARBLES_PER_PLAYER,
+  POTS,
+  TRACK_LENGTH,
+  describeTrackSpace,
+  samePosition,
+} from "./board";
+import type { GameEvent, GameState, Marble, MoveOption, Player, PlayerColor, Position } from "@/types/game";
 
-import type { Game, Player, Marble } from '@/types/game';
-import { getOpponentMarbleAtPosition, isSafeSpace } from './moves';
+const pos = (area: Position["area"], index: number | null = null): Position => ({ area, index });
+const moveId = (marbleId: string, kind: MoveOption["kind"], destination: Position) =>
+  `${marbleId}:${kind}:${destination.area}:${destination.index ?? "x"}`;
 
-/**
- * Get the next player in turn order
- */
-export function getNextPlayer(
-  currentPlayer: Player,
-  allPlayers: Player[]
-): Player | null {
-  // Sort players by position_order
-  const sortedPlayers = allPlayers
-    .filter(p => !p.is_eliminated)
-    .sort((a, b) => a.position_order - b.position_order);
+function ownMarbleAt(state: GameState, playerId: string, position: Position, movingId: string) {
+  return state.marbles.some((m) => m.id !== movingId && m.playerId === playerId && samePosition(m.position, position));
+}
 
-  // Find current player index
-  const currentIndex = sortedPlayers.findIndex(p => p.id === currentPlayer.id);
+function capturedPlayerAt(state: GameState, playerId: string, position: Position) {
+  if (position.area === "base" || position.area === "home") return undefined;
+  return state.marbles.find((m) => m.playerId !== playerId && samePosition(m.position, position))?.playerId;
+}
 
-  if (currentIndex === -1) {
-    return null;
+function pathIsOpen(state: GameState, marble: Marble, path: Position[]) {
+  return path.every((position) => !ownMarbleAt(state, marble.playerId, position, marble.id));
+}
+
+function normalPath(marble: Marble, color: PlayerColor, roll: number): Position[] | null {
+  if (marble.position.area !== "track" && marble.position.area !== "home") return null;
+  const path: Position[] = [];
+  let current = marble.position;
+  for (let step = 0; step < roll; step += 1) {
+    if (current.area === "track") {
+      current = current.index === DOORSTEPS[color]
+        ? pos("home", 0)
+        : pos("track", ((current.index ?? 0) + 1) % TRACK_LENGTH);
+    } else {
+      const next = (current.index ?? -1) + 1;
+      if (next >= HOME_SPACES) return null;
+      current = pos("home", next);
+    }
+    path.push(current);
   }
-
-  // Get next player (wrap around)
-  const nextIndex = (currentIndex + 1) % sortedPlayers.length;
-  return sortedPlayers[nextIndex];
+  return path;
 }
 
-/**
- * Check if a player has won (all 4 marbles in home)
- */
-export function hasPlayerWon(player: Player): boolean {
-  return player.marbles_home === 4;
-}
-
-/**
- * Check if a marble should be sent back to base (captured)
- */
-export function shouldCapture(
-  newPositionType: 'base' | 'track' | 'shortcut' | 'home',
-  newPositionIndex: number | null,
-  playerId: string,
-  allMarbles: Marble[]
-): Marble | null {
-  // No captures in safe spaces
-  if (isSafeSpace(newPositionType, newPositionIndex)) {
-    return null;
-  }
-
-  // Find opponent marble at destination
-  return getOpponentMarbleAtPosition(
-    newPositionType,
-    newPositionIndex,
-    playerId,
-    allMarbles
-  );
-}
-
-/**
- * Check if a move would result in winning the game
- */
-export function wouldWinGame(
-  player: Player,
-  isHomeEntry: boolean
-): boolean {
-  // Player wins when they get their 4th marble home
-  return isHomeEntry && player.marbles_home === 3; // Will become 4 after this move
-}
-
-/**
- * Check if a marble is eligible for shortcut
- * Marble must have completed at least one lap around the track
- */
-export function isEligibleForShortcut(
-  marble: Marble,
-  moveHistory?: { completedLaps: number }
-): boolean {
-  // Simplified logic: if marble is on shortcut or home, it has completed a lap
-  // In a full implementation, track lap completion in move_history or marble metadata
-  if (marble.position_type === 'shortcut' || marble.position_type === 'home') {
-    return true;
-  }
-
-  // If we have move history, check lap count
-  if (moveHistory && moveHistory.completedLaps >= 1) {
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * Calculate turn time remaining (in seconds)
- */
-export function getTurnTimeRemaining(game: Game): number {
-  if (!game.turn_started_at) {
-    return 60; // Full time if turn hasn't started
-  }
-
-  const turnStartTime = new Date(game.turn_started_at).getTime();
-  const currentTime = Date.now();
-  const elapsed = Math.floor((currentTime - turnStartTime) / 1000);
-  const remaining = Math.max(0, 60 - elapsed);
-
-  return remaining;
-}
-
-/**
- * Check if turn has timed out (>60 seconds)
- */
-export function hasTurnTimedOut(game: Game): boolean {
-  return getTurnTimeRemaining(game) === 0;
-}
-
-/**
- * Should show turn timeout warning (10 seconds remaining)
- */
-export function shouldShowTimeoutWarning(game: Game): boolean {
-  const remaining = getTurnTimeRemaining(game);
-  return remaining <= 10 && remaining > 0;
-}
-
-/**
- * Get game status based on current state
- */
-export function getGameStatus(game: Game, players: Player[]): Game['status'] {
-  // Check if any player has won
-  const winner = players.find(p => hasPlayerWon(p));
-  if (winner) {
-    return 'completed';
-  }
-
-  // Check if all players disconnected
-  const connectedPlayers = players.filter(p => p.is_connected);
-  if (connectedPlayers.length === 0) {
-    return 'abandoned';
-  }
-
-  // Check if game is active (has started)
-  if (game.current_turn_player_id) {
-    return 'active';
-  }
-
-  // Still waiting for players
-  return 'waiting';
-}
-
-/**
- * Check if a game can start
- * Requires at least 2 players
- */
-export function canStartGame(players: Player[], numPlayers: number): boolean {
-  return players.length >= 2 && players.length === numPlayers;
-}
-
-/**
- * Assign turn order to players based on color
- */
-export function getDefaultTurnOrder(): Record<string, number> {
+function makeOption(state: GameState, marble: Marble, kind: MoveOption["kind"], path: Position[], label: string): MoveOption | null {
+  if (!path.length || !pathIsOpen(state, marble, path)) return null;
+  const destination = path[path.length - 1];
   return {
-    red: 1,
-    blue: 2,
-    green: 3,
-    yellow: 4,
+    id: moveId(marble.id, kind, destination),
+    marbleId: marble.id,
+    kind,
+    destination,
+    path,
+    label,
+    capturesPlayerId: capturedPlayerAt(state, marble.playerId, destination),
   };
 }
 
-/**
- * Get player color based on position order
- */
-export function getPlayerColor(positionOrder: number): 'red' | 'blue' | 'green' | 'yellow' {
-  const colors: Array<'red' | 'blue' | 'green' | 'yellow'> = ['red', 'blue', 'green', 'yellow'];
-  return colors[positionOrder - 1] || 'red';
+export function getLegalMoves(state: GameState, playerId: string, roll: number): MoveOption[] {
+  if (state.status !== "active" || state.currentPlayerId !== playerId || roll < 1 || roll > 6) return [];
+  const player = state.players.find((item) => item.id === playerId);
+  if (!player) return [];
+  const options: MoveOption[] = [];
+
+  for (const marble of state.marbles.filter((item) => item.playerId === playerId)) {
+    if (marble.position.area === "base") {
+      if (roll === 1 || roll === 6) {
+        const path = [pos("track", POTS[player.color])];
+        const option = makeOption(state, marble, "base-exit", path, `Bring marble ${marble.number} out to your Pot`);
+        if (option) options.push(option);
+      }
+      continue;
+    }
+
+    if (marble.position.area === "center") {
+      if (roll === 1) {
+        for (const [color, index] of Object.entries(FAT_CITIES) as Array<[PlayerColor, number]>) {
+          const option = makeOption(state, marble, "center-exit", [pos("track", index)], `Exit Center to ${color} Fat City`);
+          if (option) options.push(option);
+        }
+      }
+      continue;
+    }
+
+    const path = normalPath(marble, player.color, roll);
+    if (path) {
+      const destination = path[path.length - 1];
+      const name = destination.area === "home"
+        ? `Move marble ${marble.number} into Home ${Number(destination.index) + 1}`
+        : `Move marble ${marble.number} to ${describeTrackSpace(Number(destination.index), player.color)}`;
+      const option = makeOption(state, marble, "normal", path, name);
+      if (option) options.push(option);
+    }
+
+    if (marble.position.area === "track" && roll === 3 && marble.position.index === FAT_CITIES[player.color]) {
+      const start = FAT_CITIES[player.color];
+      const shortcut = [1, 2, 3].map((hop) => pos("track", (start + hop * 17) % TRACK_LENGTH));
+      const option = makeOption(state, marble, "fat-city", shortcut, `Take the Fat City shortcut to your Driveway`);
+      if (option) options.push(option);
+    }
+
+    if (marble.position.area === "track") {
+      const distanceToFatCity = (FAT_CITIES[player.color] - Number(marble.position.index) + TRACK_LENGTH) % TRACK_LENGTH;
+      if (distanceToFatCity < roll && roll - distanceToFatCity === 1) {
+        const pathToCenter: Position[] = [];
+        for (let step = 1; step <= distanceToFatCity; step += 1) {
+          pathToCenter.push(pos("track", (Number(marble.position.index) + step) % TRACK_LENGTH));
+        }
+        pathToCenter.push(pos("center"));
+        const option = makeOption(state, marble, "center-entry", pathToCenter, `Move marble ${marble.number} into Center`);
+        if (option) options.push(option);
+      }
+    }
+  }
+
+  return options;
 }
 
-/**
- * Check if current player can roll dice
- */
-export function canRollDice(game: Game, playerId: string): boolean {
-  // Must be player's turn
-  if (game.current_turn_player_id !== playerId) {
-    return false;
-  }
-
-  // Must be active game
-  if (game.status !== 'active') {
-    return false;
-  }
-
-  // Can't roll if already rolled this turn
-  if (game.current_dice_roll !== null) {
-    return false;
-  }
-
-  return true;
+function event(message: string, playerId?: string): GameEvent {
+  return { id: crypto.randomUUID(), at: Date.now(), message, playerId };
 }
 
-/**
- * Check if current player can move a marble
- */
-export function canMoveMarble(game: Game, playerId: string): boolean {
-  // Must be player's turn
-  if (game.current_turn_player_id !== playerId) {
-    return false;
+function advanceTurn(state: GameState) {
+  const index = state.players.findIndex((player) => player.id === state.currentPlayerId);
+  const next = state.players[(index + 1) % state.players.length];
+  state.currentPlayerId = next.id;
+  state.dice = null;
+}
+
+export function rollForPlayer(state: GameState, playerId: string, random: () => number = Math.random) {
+  if (state.status !== "active" || state.currentPlayerId !== playerId) throw new Error("It is not your turn.");
+  if (state.dice !== null) throw new Error("The dice has already been rolled.");
+  const player = state.players.find((item) => item.id === playerId)!;
+  const roll = Math.floor(random() * 6) + 1;
+  state.dice = roll;
+  state.events.push(event(`${player.name} rolled ${roll}.`, player.id));
+  const moves = getLegalMoves(state, playerId, roll);
+  if (moves.length === 0) {
+    state.events.push(event(`${player.name} had no legal move.`, player.id));
+    advanceTurn(state);
+  }
+  state.updatedAt = Date.now();
+  return { roll, moves };
+}
+
+export function applyMove(state: GameState, playerId: string, optionId: string) {
+  if (state.dice === null) throw new Error("Roll before moving.");
+  const roll = state.dice;
+  const option = getLegalMoves(state, playerId, roll).find((item) => item.id === optionId);
+  if (!option) throw new Error("That move is no longer legal.");
+  const player = state.players.find((item) => item.id === playerId)!;
+  const marble = state.marbles.find((item) => item.id === option.marbleId)!;
+
+  const killed = state.marbles.find((item) => item.playerId !== playerId && samePosition(item.position, option.destination));
+  if (killed) {
+    killed.position = pos("base");
+    const victim = state.players.find((item) => item.id === killed.playerId)!;
+    state.events.push(event(`${player.name} killed ${victim.name}'s marble!`, player.id));
   }
 
-  // Must be active game
-  if (game.status !== 'active') {
-    return false;
-  }
+  marble.position = option.destination;
+  state.events.push(event(`${player.name}: ${option.label}.`, player.id));
 
-  // Must have rolled dice
-  if (game.current_dice_roll === null) {
-    return false;
+  const isWinner = state.marbles
+    .filter((item) => item.playerId === playerId)
+    .every((item) => item.position.area === "home");
+  if (isWinner) {
+    state.status = "completed";
+    state.winnerPlayerId = playerId;
+    state.currentPlayerId = null;
+    state.dice = null;
+    state.events.push(event(`${player.name} is Up Tight and wins!`, player.id));
+  } else if (roll === 6) {
+    state.dice = null;
+    state.events.push(event(`${player.name} earned another roll.`, player.id));
+  } else {
+    advanceTurn(state);
   }
+  state.updatedAt = Date.now();
+  state.events = state.events.slice(-30);
+  return option;
+}
 
-  return true;
+export function addPlayerMarbles(state: GameState, player: Player) {
+  for (let number = 1; number <= MARBLES_PER_PLAYER; number += 1) {
+    state.marbles.push({ id: crypto.randomUUID(), playerId: player.id, number, position: pos("base") });
+  }
+}
+
+export function startGame(state: GameState) {
+  if (state.status !== "waiting") throw new Error("This game has already started.");
+  if (state.players.length < 2) throw new Error("Add at least one player or bot first.");
+  state.status = "active";
+  state.currentPlayerId = state.players[0].id;
+  state.events.push(event(`${state.players[0].name} goes first.`));
+  state.updatedAt = Date.now();
+}
+
+export function chooseBotMove(state: GameState, playerId: string, moves: MoveOption[], random: () => number = Math.random) {
+  if (!moves.length) return null;
+  const player = state.players.find((item) => item.id === playerId)!;
+  const ranked = moves.map((move) => {
+    const trackProgress = move.destination.area === "track"
+      ? 100 - ((DOORSTEPS[player.color] - Number(move.destination.index) + TRACK_LENGTH) % TRACK_LENGTH)
+      : 0;
+    return {
+      move,
+      score:
+        (move.capturesPlayerId ? 30 : 0) +
+        trackProgress +
+        (move.destination.area === "home" ? 220 + Number(move.destination.index) * 8 : 0) +
+        (move.kind === "fat-city" ? 130 : 0) +
+        (move.kind === "center-entry" ? 100 : 0) +
+        (move.kind === "base-exit" ? 55 : 0) + random(),
+    };
+  });
+  return ranked.sort((a, b) => b.score - a.score)[0].move;
+}
+
+export function playBotStep(state: GameState, random: () => number = Math.random) {
+  const bot = state.players.find((player) => player.id === state.currentPlayerId);
+  if (!bot?.isBot) throw new Error("The current player is not a bot.");
+  const result = rollForPlayer(state, bot.id, random);
+  if (state.currentPlayerId === bot.id && state.dice !== null) {
+    const choice = chooseBotMove(state, bot.id, result.moves, random);
+    if (choice) applyMove(state, bot.id, choice.id);
+  }
 }
