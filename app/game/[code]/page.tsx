@@ -12,6 +12,7 @@ import { DEFAULT_DIE_STYLES, PLAYER_COLORS, TURN_TIMEOUT_OPTIONS } from "@/types
 import type { DieStyle, GameEventKind, MarbleStyle, PlayerColor, Position, PublicGameState, TurnTimeoutSeconds } from "@/types/game";
 
 interface GamePageProps { params: Promise<{ code: string }> }
+interface RemoteRollPresentation { eventId: string; playerId: string; result: number; dieStyle: DieStyle; rolling: boolean }
 
 const CALLOUTS: Partial<Record<GameEventKind, string>> = {
   "doorstep-killing": "DOORSTEP KILLING!", welcome: "WELCOME TO THE GAME!", "back-to-pot": "BACK TO POT!",
@@ -35,7 +36,7 @@ export default function GamePage({ params }: GamePageProps) {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [rolling, setRolling] = useState(false);
-  const [botRolling, setBotRolling] = useState(false);
+  const [remoteRoll, setRemoteRoll] = useState<RemoteRollPresentation | null>(null);
   const [dieLandingSlot, setDieLandingSlot] = useState(0);
   const rollingRef = useRef(false);
   const [selectedDie, setSelectedDie] = useState<DieStyle | null>(null);
@@ -44,6 +45,7 @@ export default function GamePage({ params }: GamePageProps) {
   const [clockNow, setClockNow] = useState(() => Date.now());
   const seenEventRef = useRef<string | null>(null);
   const eventsInitializedRef = useRef(false);
+  const presentedRollEventRef = useRef<string | null>(null);
 
   const load = useCallback(async (knownToken?: string) => {
     if (rollingRef.current) return;
@@ -126,6 +128,7 @@ export default function GamePage({ params }: GamePageProps) {
 
   const currentPlayer = game?.players.find((player) => player.id === game.currentPlayerId);
   const viewer = game?.players.find((player) => player.id === game.viewerPlayerId);
+  const viewerId = viewer?.id;
   const isHost = viewer?.id === game?.hostPlayerId;
   const gameStatus = game?.status;
   const botTurnUpdatedAt = game?.updatedAt;
@@ -141,21 +144,25 @@ export default function GamePage({ params }: GamePageProps) {
     return () => window.clearTimeout(timer);
   }, [act, botTurnDice, botTurnPlayerId, botTurnUpdatedAt, currentPlayer?.id, currentPlayer?.isBot, gameStatus, isHost, pending]);
 
-  const observedRollSignature = currentPlayer && currentPlayer.id !== viewer?.id && game?.dice !== null
-    ? `${currentPlayer.id}:${game.updatedAt}:${game.dice}`
-    : null;
+  const latestRemoteRollEvent = game?.events.findLast((item) => item.kind === "roll" && item.playerId !== viewerId && item.rollValue);
+  const remoteRollEventId = latestRemoteRollEvent?.id;
+  const remoteRollPlayerId = latestRemoteRollEvent?.playerId;
+  const remoteRollValue = latestRemoteRollEvent?.rollValue;
+  const remoteRollDieStyle = latestRemoteRollEvent?.dieStyle;
+  const remoteRollAt = latestRemoteRollEvent?.at;
   useEffect(() => {
-    const showTimer = window.setTimeout(() => {
-      setBotRolling(Boolean(observedRollSignature));
-      if (observedRollSignature) setDieLandingSlot((slot) => (slot + 1 + Math.floor(Math.random() * 7)) % 8);
-    }, 0);
-    if (!observedRollSignature) return () => window.clearTimeout(showTimer);
-    const hideTimer = window.setTimeout(() => setBotRolling(false), 1150);
+    if (!viewerId || !remoteRollEventId || !remoteRollPlayerId || !remoteRollValue || !remoteRollAt) return;
+    if (presentedRollEventRef.current === remoteRollEventId || clockNow - remoteRollAt > 30_000) return;
+    presentedRollEventRef.current = remoteRollEventId;
+    setDieLandingSlot((slot) => (slot + 1 + Math.floor(Math.random() * 7)) % 8);
+    setRemoteRoll({ eventId: remoteRollEventId, playerId: remoteRollPlayerId, result: remoteRollValue, dieStyle: remoteRollDieStyle ?? "team", rolling: true });
+    const landTimer = window.setTimeout(() => setRemoteRoll((shown) => shown?.eventId === remoteRollEventId ? { ...shown, rolling: false } : shown), 1150);
+    const clearTimer = window.setTimeout(() => setRemoteRoll((shown) => shown?.eventId === remoteRollEventId ? null : shown), 3000);
     return () => {
-      window.clearTimeout(showTimer);
-      window.clearTimeout(hideTimer);
+      window.clearTimeout(landTimer);
+      window.clearTimeout(clearTimer);
     };
-  }, [observedRollSignature]);
+  }, [clockNow, remoteRollAt, remoteRollDieStyle, remoteRollEventId, remoteRollPlayerId, remoteRollValue, viewerId]);
 
   const timedPlayerId = currentPlayer && !currentPlayer.isBot ? currentPlayer.id : null;
   const turnStartedAt = game?.turnStartedAt;
@@ -181,7 +188,6 @@ export default function GamePage({ params }: GamePageProps) {
   const doorstepPlayerId = game?.doorstepChallenge?.playerId;
   const doorstepUpdatedAt = game?.updatedAt;
   const doorstepDice = game?.dice;
-  const viewerId = viewer?.id;
   useEffect(() => {
     if (!doorstepPending || doorstepPlayerId !== viewerId || gameStatus !== "active" || pending || doorstepUpdatedAt === undefined) return;
     const timer = window.setTimeout(() => void act("resolve-doorstep", {
@@ -207,6 +213,7 @@ export default function GamePage({ params }: GamePageProps) {
   const canViewerRoll = Boolean(game && viewer && currentPlayer?.id === viewer.id && !viewer.isBot && !game.winnerPlayerId && game.dice === null && !pending && !rolling);
   const rollSelectedDie = useCallback(() => {
     if (!canViewerRoll || rollingRef.current) return;
+    setRemoteRoll(null);
     setDieLandingSlot((slot) => (slot + 1 + Math.floor(Math.random() * 7)) % 8);
     void act("roll", { dieStyle: activeDie });
   }, [act, activeDie, canViewerRoll]);
@@ -345,6 +352,12 @@ export default function GamePage({ params }: GamePageProps) {
   }
 
   const winner = game.players.find((player) => player.id === game.winnerPlayerId);
+  const remoteRollPlayer = game.players.find((player) => player.id === remoteRoll?.playerId);
+  const presentedPlayer = rolling ? viewer : remoteRollPlayer ?? currentPlayer;
+  const presentedResult = rolling ? game.dice : remoteRoll?.result ?? game.dice;
+  const presentedDieStyle = rolling ? activeDie : remoteRoll?.dieStyle ?? currentPlayer?.selectedDieStyle ?? "team";
+  const diceIsRolling = rolling || Boolean(remoteRoll?.rolling);
+  const showBoardDie = Boolean(presentedPlayer && (rolling || remoteRoll || game.dice !== null));
   return (
     <main className="game-shell">
       <header className="game-topbar"><button className="brand-button brand-kill" onClick={() => router.push("/")} aria-label="Kill home"><strong>KILL</strong></button><button className="room-pill" onClick={share}>{copied ? "COPIED" : `ROOM ${code}`}</button></header>
@@ -359,11 +372,11 @@ export default function GamePage({ params }: GamePageProps) {
           onDestinationClick={chooseDestination}
           onBoardRoll={rollSelectedDie}
           canRoll={canViewerRoll}
-          diceRolling={rolling || botRolling}
+          diceRolling={diceIsRolling}
           disabled={pending || !!winner}
           callout={callout}
           viewerColor={viewer?.color}
-          diceStage={(rolling || game.dice !== null) && currentPlayer ? <BoardDie styleName={rolling && viewer ? activeDie : currentPlayer.selectedDieStyle ?? "team"} color={currentPlayer.color} result={game.dice} rolling={rolling || botRolling} landingSlot={dieLandingSlot} viewerColor={viewer?.color} /> : null}
+          diceStage={showBoardDie && presentedPlayer ? <BoardDie styleName={presentedDieStyle} color={presentedPlayer.color} result={presentedResult} rolling={diceIsRolling} landingSlot={dieLandingSlot} viewerColor={viewer?.color} /> : null}
         />
       </section>
       <aside className="control-column">

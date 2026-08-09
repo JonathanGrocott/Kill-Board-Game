@@ -248,7 +248,11 @@ export function rollForPlayer(
   const roll = Math.floor(random() * 6) + 1;
   state.dice = roll;
   state.turnRolls = [...(state.turnRolls ?? []), roll];
-  state.events.push(event(`${player.name} rolled ${roll}.`, player.id));
+  state.events.push({
+    ...event(`${player.name} rolled ${roll}.`, player.id, "roll"),
+    rollValue: roll,
+    dieStyle: player.selectedDieStyle ?? "team",
+  });
   if (state.turnRolls.slice(-3).join("-") === "6-6-3") {
     state.events.push(event(`${player.name} rolled the legendary 6-6-3!`, player.id, "six-six-three"));
   }

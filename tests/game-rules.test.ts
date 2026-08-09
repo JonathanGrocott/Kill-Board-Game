@@ -253,6 +253,19 @@ describe("Kill rules", () => {
     assert.equal(game.currentPlayerId, "blue");
   });
 
+  it("keeps enough roll data to replay another human's throw after they move", () => {
+    const game = state();
+    game.players.find((participant) => participant.id === "red")!.selectedDieStyle = "amber";
+    const result = rollForPlayer(game, "red", () => 0);
+    applyMove(game, "red", result.moves[0].id);
+    assert.equal(game.currentPlayerId, "blue");
+    assert.equal(game.dice, null);
+    const rollEvent = game.events.find((item) => item.kind === "roll");
+    assert.deepEqual({ playerId: rollEvent?.playerId, value: rollEvent?.rollValue, style: rollEvent?.dieStyle }, {
+      playerId: "red", value: 1, style: "amber",
+    });
+  });
+
   it("splits a bot roll and move into two visible steps", () => {
     const game = state();
     game.currentPlayerId = "blue";

@@ -107,10 +107,12 @@ The first player to place all five marbles safely into the five Home spaces wins
 - Rolling 6, then 6, then 3 within one uninterrupted extended turn is the celebrated `6-6-3!`. The sequence is based on the player's actual roll chain; it does not require choosing particular routes.
 - Bots choose from the same server-generated legal moves as humans.
 - Bot turns are host-driven in two visible phases: first roll and reveal the die, then move or pass. Duplicate or stale bot-step requests must never skip the visible result.
+- Every roll is retained as a short-lived structured game event containing the roller, result, and selected die style. Other players replay that throw even if the roller completes their move between polling refreshes; human and bot rolls must both remain visibly attributable.
 - A human may execute a legal move by clicking either the marble being moved or its highlighted destination. When the destination contains an opponent, that opponent's marble is itself the clickable `KILL` target.
 - Clicking a Pot for a legal Base exit automatically chooses any one of the equivalent Base marbles. On a human turn before rolling, clicking the open board also rolls the selected die; the die button and Space bar remain available.
 - A marble occupying Center remains visible while dice travel from the active player's side to a randomized safe landing position near Center.
 - Local development exposes a host-only endgame test control that places four marbles per player Up Tight and each fifth marble one space before its Doorstep. This control must not be available in a production/Sites build.
 - The host configures the human turn timer before starting: Off, 1 minute, 2 minutes, or 5 minutes. The default is 2 minutes. When a human has not rolled by the deadline, the server rolls automatically; it never chooses a legal move for that human. Bots keep their normal visible automated turn flow.
 - Active games include temporary table chat for human players. Messages are plain text, normalized to 160 characters, and the game retains only the most recent 60.
+- Phone layouts prioritize legible marbles and table chat: the board and compact controls share the viewport, nonessential move history is hidden, and chat remains visible without scrolling on common portrait and landscape sizes when no exceptional move-choice panel is open.
 - Game records, including chat, are temporary and are deleted after completion or abandonment.
