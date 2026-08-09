@@ -1,299 +1,81 @@
-'use client';
+"use client";
 
-/**
- * Home Page
- * 
- * Entry point with Create Game and Join Game options
- */
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { GuestNamePrompt } from '@/components/auth/GuestNamePrompt';
-import { supabase } from '@/lib/supabase/client';
-import { signInAsGuest } from '@/lib/auth/guest';
+interface CreatedGame { game: { code: string }; token: string }
 
 export default function HomePage() {
   const router = useRouter();
-  const [showNamePrompt, setShowNamePrompt] = useState(false);
-  const [promptAction, setPromptAction] = useState<'create' | 'join' | 'practice'>('create');
-  const [gameId, setGameId] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [name, setName] = useState("");
+  const [code, setCode] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleCreateGame = () => {
-    setPromptAction('create');
-    setShowNamePrompt(true);
-  };
+  async function create(practice: boolean) {
+    setPending(true);
+    setError("");
+    try {
+      const response = await fetch("/api/games", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name, practice }),
+      });
+      const result = await response.json() as CreatedGame & { error?: string };
+      if (!response.ok) throw new Error(result.error);
+      localStorage.setItem(`kill-token:${result.game.code}`, result.token);
+      router.push(`/game/${result.game.code}`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not create game.");
+      setPending(false);
+    }
+  }
 
-  const handleJoinGame = () => {
-    if (!gameId.trim()) {
-      setError('Please enter a game ID');
+  function openRoom() {
+    const normalized = code.trim().toUpperCase();
+    if (normalized.length !== 6) {
+      setError("Enter the six-character room code.");
       return;
     }
-    setPromptAction('join');
-    setShowNamePrompt(true);
-  };
-
-  const handlePracticeWithBots = async () => {
-    setIsLoading(true);
-    setError('');
-
-    try {
-      // Get or create anonymous session
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        // Need to sign in first - set action to practice so bots get added after
-        setPromptAction('practice');
-        setShowNamePrompt(true);
-        setIsLoading(false);
-        return;
-      }
-
-      // User is already logged in, create game with bots directly
-      await createPracticeGame(user.user_metadata?.display_name || 'Player');
-    } catch (err) {
-      console.error('Error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create practice game');
-      setIsLoading(false);
-    }
-  };
-
-  // Helper function to create a practice game with bots
-  const createPracticeGame = async (displayName: string) => {
-    // Create game
-    const { data, error: createError } = await supabase.rpc('create_game_session', {
-      p_display_name: displayName,
-      p_num_players: 4,
-      p_enable_shortcuts: true,
-    });
-
-    if (createError) throw createError;
-
-    if (data) {
-      const gameData = data as unknown as { game_id: string };
-      const newGameId = gameData.game_id;
-
-      // Add 3 bots (this will auto-start the game when the 4th bot is added)
-      for (let i = 0; i < 3; i++) {
-        const { error: botError } = await supabase.rpc('add_bot_player', {
-          p_game_id: newGameId,
-        });
-        if (botError) {
-          console.error('Failed to add bot:', botError);
-          throw botError;
-        }
-      }
-
-      // Game should now be active, redirect to play page
-      router.push(`/game/${newGameId}/play`);
-    }
-  };
-
-  const handleNameSubmit = async (displayName: string) => {
-    setIsLoading(true);
-    setError('');
-
-    try {
-      // Sign in as guest
-      const authData = await signInAsGuest({ displayName });
-      
-      if (!authData.user) {
-        throw new Error('Failed to sign in');
-      }
-
-      if (promptAction === 'practice') {
-        // Create practice game with bots
-        await createPracticeGame(displayName);
-      } else if (promptAction === 'create') {
-        // Create new game
-        const { data, error: rpcError } = await supabase.rpc('create_game_session', {
-          p_display_name: displayName,
-          p_num_players: 4,
-          p_enable_shortcuts: true,
-        });
-
-        if (rpcError) {
-          console.error('RPC Error:', rpcError);
-          throw rpcError;
-        }
-
-        if (!data) {
-          throw new Error('Failed to create game: No data returned from server');
-        }
-
-        console.log('Game created:', data);
-        const gameData = data as unknown as { game_id: string };
-        
-        if (!gameData.game_id) {
-          throw new Error('Failed to create game: Invalid response format');
-        }
-        
-        router.push(`/game/${gameData.game_id}`);
-      } else {
-        // Join existing game
-        const { error: rpcError } = await supabase.rpc('join_game_session', {
-          p_game_id: gameId,
-          p_display_name: displayName,
-        });
-
-        if (rpcError) {
-          // Check for game full error
-          if (rpcError.message?.includes('GAME_FULL')) {
-            throw new Error('This game is full. Please create a new game or join a different one.');
-          }
-          if (rpcError.message?.includes('GAME_STARTED')) {
-            throw new Error('This game has already started. Please create a new game or join a different one.');
-          }
-          if (rpcError.message?.includes('GAME_NOT_FOUND')) {
-            throw new Error('Game not found. Please check the game ID and try again.');
-          }
-          throw rpcError;
-        }
-
-        router.push(`/game/${gameId}`);
-      }
-    } catch (err) {
-      console.error('Error:', err);
-      console.error('Error details:', JSON.stringify(err, null, 2));
-      
-      // Handle anonymous sign-in disabled error
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      if (errorMessage.includes('Anonymous sign-ins are disabled')) {
-        setError(
-          'Anonymous sign-in is not enabled. Please enable it in your Supabase dashboard: ' +
-          'Authentication > Providers > Email > Enable anonymous sign-ins'
-        );
-      } else if (errorMessage === 'An error occurred' && typeof err === 'object' && err !== null) {
-        // Try to extract more details from the error object
-        const errObj = err as unknown as { code?: string; message?: string; hint?: string; details?: string };
-        if (errObj.code) {
-          setError(`Database error (${errObj.code}): ${errObj.message || errObj.hint || 'Unknown error'}`);
-        } else if (errObj.details) {
-          setError(`Error: ${errObj.details}`);
-        } else {
-          setError('An unexpected error occurred. Please check the console for details and ensure database migrations are applied.');
-        }
-      } else {
-        setError(errorMessage);
-      }
-      
-      setIsLoading(false);
-      setShowNamePrompt(false);
-    }
-  };
+    router.push(`/game/${normalized}`);
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">
-      <Card className="max-w-2xl w-full p-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold mb-3">🎲 Kill</h1>
-          <p className="text-xl text-gray-600 mb-2">
-            The Classic Board Game - Online Multiplayer
-          </p>
-          <p className="text-gray-500">
-            Race your marbles home, capture opponents, and use shortcuts to victory!
-          </p>
-        </div>
+    <main className="landing-shell">
+      <section className="landing-copy">
+        <div className="eyebrow">THE MARBLE GAME OF CALCULATED REVENGE</div>
+        <h1 className="kill-wordmark"><span className="sr-only">Kill</span><span aria-hidden="true">K</span><span aria-hidden="true">I</span><span aria-hidden="true">L</span><span aria-hidden="true">L</span></h1>
+        <p className="lead">Five marbles. One way home. No mercy.</p>
+        <p className="up-tight-signoff">GET UP TIGHT.</p>
+      </section>
 
-        {/* How to Play */}
-        <div className="bg-blue-50 rounded-lg p-4 mb-6">
-          <h2 className="font-semibold mb-2">How to Play:</h2>
-          <ul className="text-sm text-gray-700 space-y-1">
-            <li>• Roll the dice and move your marbles around the board</li>
-            <li>• Get all 4 marbles to your home zone to win</li>
-            <li>• Land on opponents to send them back to start</li>
-            <li>• Take shortcuts after completing one lap</li>
-            <li>• Play with 2-4 players</li>
-          </ul>
-        </div>
-
-        {/* Actions */}
-        <div className="space-y-4">
-          {/* Create Game */}
-          <div>
-            <Button
-              onClick={handleCreateGame}
-              size="lg"
-              className="w-full text-lg h-14"
-              disabled={isLoading}
-            >
-              Create New Game
-            </Button>
-          </div>
-
-          {/* Practice with Bots */}
-          <div>
-            <Button
-              onClick={handlePracticeWithBots}
-              size="lg"
-              variant="secondary"
-              className="w-full text-lg h-14"
-              disabled={isLoading}
-            >
-              🤖 Practice with Bots
-            </Button>
-          </div>
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">or</span>
-            </div>
-          </div>
-
-          {/* Join Game */}
-          <div className="space-y-2">
-            <Input
-              type="text"
-              placeholder="Enter Game ID"
-              value={gameId}
-              onChange={(e) => {
-                setGameId(e.target.value);
-                setError('');
-              }}
-              disabled={isLoading}
-              className="text-center font-mono"
-            />
-            <Button
-              onClick={handleJoinGame}
-              size="lg"
-              variant="outline"
-              className="w-full text-lg h-14"
-              disabled={isLoading || !gameId.trim()}
-            >
-              Join Game
-            </Button>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-red-800 text-sm">{error}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <p>No account needed • Guest mode • Free to play</p>
-        </div>
-      </Card>
-
-      {/* Name prompt modal */}
-      {showNamePrompt && (
-        <GuestNamePrompt
-          onSubmit={handleNameSubmit}
-          isLoading={isLoading}
+      <section className="start-card" aria-label="Start playing">
+        <label htmlFor="player-name">Your guest name</label>
+        <input
+          id="player-name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Marble menace"
+          maxLength={20}
+          autoComplete="nickname"
         />
-      )}
-    </div>
+        <div className="primary-actions">
+          <button className="button button-primary" onClick={() => create(false)} disabled={pending}>Host game</button>
+          <button className="button button-warm" onClick={() => create(true)} disabled={pending}>Play bots</button>
+        </div>
+        <div className="join-divider"><span>or join friends</span></div>
+        <div className="join-row">
+          <input
+            aria-label="Room code"
+            value={code}
+            onChange={(event) => setCode(event.target.value.toUpperCase().replace(/[^A-Z2-9]/g, "").slice(0, 6))}
+            placeholder="ROOM CODE"
+            className="code-input"
+          />
+          <button className="button button-ghost" onClick={openRoom}>Join</button>
+        </div>
+        {error && <p className="form-error" role="alert">{error}</p>}
+      </section>
+    </main>
   );
 }
-

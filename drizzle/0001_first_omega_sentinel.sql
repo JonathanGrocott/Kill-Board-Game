@@ -1,0 +1,1 @@
+CREATE INDEX `idx_games_expires_at` ON `games` (`expires_at`);

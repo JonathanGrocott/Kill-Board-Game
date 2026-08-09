@@ -1,74 +1,104 @@
-// Base TypeScript Types
-// Purpose: Core game types matching database schema
+export const PLAYER_COLORS = ["red", "blue", "green", "yellow"] as const;
+export type PlayerColor = (typeof PLAYER_COLORS)[number];
+export const MARBLE_STYLES = ["swirl", "cat-eye", "pearl"] as const;
+export type MarbleStyle = (typeof MARBLE_STYLES)[number];
+export const DIE_STYLES = ["team", "ivory", "amber", "forest"] as const;
+export type DieStyle = (typeof DIE_STYLES)[number];
+export const DEFAULT_DIE_STYLES: DieStyle[] = ["team", "ivory", "amber"];
+export const TURN_TIMEOUT_OPTIONS = [0, 60, 120, 300] as const;
+export type TurnTimeoutSeconds = (typeof TURN_TIMEOUT_OPTIONS)[number];
+export type GameStatus = "waiting" | "active" | "completed";
+export type PositionArea = "base" | "track" | "center" | "home";
 
-export type GameStatus = 'waiting' | 'active' | 'completed' | 'abandoned';
-
-export type PlayerColor = 'red' | 'blue' | 'green' | 'yellow';
-
-export type PositionType = 'base' | 'track' | 'shortcut' | 'home' | 'center';
-
-export interface Game {
-  id: string;
-  created_at: string;
-  updated_at: string;
-  status: GameStatus;
-  current_turn_player_id: string | null;
-  current_dice_roll: number | null;
-  turn_started_at: string | null;
-  num_players: number;
-  shortcut_spaces_enabled: boolean;
-  last_activity_at: string;
-  auto_delete_at: string;
-  winner_player_id: string | null;
-  winning_timestamp: string | null;
-}
-
-export interface Player {
-  id: string;
-  created_at: string;
-  game_session_id: string;
-  user_id: string | null;
-  display_name: string;
-  is_bot: boolean;
-  color: PlayerColor;
-  position_order: number;
-  is_connected: boolean;
-  last_seen_at: string;
-  marbles_home: number;
-  is_eliminated: boolean;
+export interface Position {
+  area: PositionArea;
+  index: number | null;
 }
 
 export interface Marble {
   id: string;
-  created_at: string;
-  player_id: string;
-  marble_number: number;
-  position_type: PositionType;
-  position_index: number | null;
-  times_sent_back: number;
-  last_moved_at: string | null;
+  playerId: string;
+  number: number;
+  position: Position;
+}
+
+export interface Player {
+  id: string;
+  name: string;
+  color: PlayerColor;
+  seat: number;
+  isBot: boolean;
+  marbleStyle?: MarbleStyle;
+  diceStyles?: DieStyle[];
+  selectedDieStyle?: DieStyle;
+  tokenHash?: string;
+}
+
+export type GameEventKind =
+  | "roll" | "move" | "no-move" | "kill" | "welcome" | "doorstep-killing" | "doorstep-try-1" | "doorstep-try-2" | "doorstep-final"
+  | "back-to-pot" | "fat-city" | "six-again" | "up-tight" | "constipated" | "three-way-sniff"
+  | "sniff-sniff" | "auto-bung" | "bung-hole" | "six-six-three" | "three-sixes" | "cut-across-shorty" | "auto-roll";
+
+export interface GameEvent {
+  id: string;
+  at: number;
+  message: string;
+  playerId?: string;
+  kind?: GameEventKind;
+  rollValue?: number;
+  dieStyle?: DieStyle;
+  relatedRollEventId?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  at: number;
+  playerId: string;
+  playerName: string;
+  message: string;
+}
+
+export interface DoorstepChallenge {
+  playerId: string;
+  marbleId: string;
+  attempts: number;
+  pendingResolution: boolean;
 }
 
 export interface GameState {
-  game: Game;
+  code: string;
+  status: GameStatus;
   players: Player[];
   marbles: Marble[];
+  hostPlayerId: string;
+  currentPlayerId: string | null;
+  dice: number | null;
+  winnerPlayerId: string | null;
+  doorstepChallenge?: DoorstepChallenge | null;
+  turnTimeoutSeconds: TurnTimeoutSeconds;
+  turnStartedAt: number;
+  turnRolls: number[];
+  chatMessages: ChatMessage[];
+  createdAt: number;
+  updatedAt: number;
+  events: GameEvent[];
+  processedActionIds: string[];
 }
 
-export interface MoveResult {
-  success: boolean;
-  marble_id: string;
-  new_position_type: PositionType;
-  new_position_index: number | null;
-  captured_marble_id: string | null;
-  player_won: boolean;
-  next_turn_player_id: string | null;
-  extra_turn?: boolean;           // True if player rolled 6 and gets another turn
-  is_fat_city_hop?: boolean;      // True if move was a Fat City hop shortcut
+export type MoveKind = "base-exit" | "normal" | "center-entry" | "center-exit" | "fat-city";
+
+export interface MoveOption {
+  id: string;
+  marbleId: string;
+  kind: MoveKind;
+  destination: Position;
+  path: Position[];
+  label: string;
+  capturesPlayerId?: string;
 }
 
-export interface DiceRollResult {
-  dice_value: number;
-  player_id: string;
-  valid_marbles: string[];
+export interface PublicGameState extends Omit<GameState, "players" | "processedActionIds"> {
+  players: Array<Omit<Player, "tokenHash">>;
+  legalMoves: MoveOption[];
+  viewerPlayerId: string | null;
 }
