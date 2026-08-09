@@ -50,6 +50,7 @@ export default function GamePage({ params }: GamePageProps) {
   const eventsInitializedRef = useRef(false);
   const presentedRollEventRef = useRef<string | null>(null);
   const handledResolutionEventRef = useRef<string | null>(null);
+  const resolvedMoveRollEventRef = useRef<string | null>(null);
 
   const load = useCallback(async (knownToken?: string) => {
     if (rollingRef.current) return;
@@ -163,7 +164,14 @@ export default function GamePage({ params }: GamePageProps) {
     setSuppressedRollEventId(null);
     setDieLandingSlot((slot) => (slot + 1 + Math.floor(Math.random() * 7)) % 8);
     setRemoteRoll({ eventId: remoteRollEventId, playerId: remoteRollPlayerId, result: remoteRollValue, dieStyle: remoteRollDieStyle ?? "team", rolling: true });
-    const landTimer = window.setTimeout(() => setRemoteRoll((shown) => shown?.eventId === remoteRollEventId ? { ...shown, rolling: false } : shown), 1150);
+    const landTimer = window.setTimeout(() => {
+      if (resolvedMoveRollEventRef.current === remoteRollEventId) {
+        setRemoteRoll((shown) => shown?.eventId === remoteRollEventId ? null : shown);
+        setSuppressedRollEventId(remoteRollEventId);
+        return;
+      }
+      setRemoteRoll((shown) => shown?.eventId === remoteRollEventId ? { ...shown, rolling: false } : shown);
+    }, 1150);
     return () => window.clearTimeout(landTimer);
   }, [remoteRollAt, remoteRollDieStyle, remoteRollEventId, remoteRollIsFresh, remoteRollPlayerId, remoteRollValue, viewerId]);
 
@@ -183,8 +191,9 @@ export default function GamePage({ params }: GamePageProps) {
     handledResolutionEventRef.current = resolutionEventId;
 
     if (resolutionKind === "move") {
+      resolvedMoveRollEventRef.current = resolutionRollEventId;
       const clearDieTimer = window.setTimeout(() => {
-        setRemoteRoll((shown) => shown?.eventId === resolutionRollEventId ? null : shown);
+        setRemoteRoll((shown) => shown?.eventId === resolutionRollEventId && !shown.rolling ? null : shown);
         setNoMoveNotice((notice) => notice?.rollEventId === resolutionRollEventId ? null : notice);
         setSuppressedRollEventId(resolutionRollEventId);
       }, 0);
@@ -201,7 +210,7 @@ export default function GamePage({ params }: GamePageProps) {
     const hideDieTimer = window.setTimeout(() => {
       setRemoteRoll((shown) => shown?.eventId === resolutionRollEventId ? null : shown);
       setSuppressedRollEventId(resolutionRollEventId);
-    }, 1000);
+    }, resolutionPlayerId === viewerId ? 1000 : 2150);
     const clearNoticeTimer = window.setTimeout(() => {
       setNoMoveNotice((notice) => notice?.eventId === resolutionEventId ? null : notice);
     }, 4000);
@@ -210,7 +219,7 @@ export default function GamePage({ params }: GamePageProps) {
       window.clearTimeout(hideDieTimer);
       window.clearTimeout(clearNoticeTimer);
     };
-  }, [resolutionAt, resolutionEventId, resolutionIsFresh, resolutionKind, resolutionPlayerId, resolutionRollEventId, resolutionRollValue]);
+  }, [resolutionAt, resolutionEventId, resolutionIsFresh, resolutionKind, resolutionPlayerId, resolutionRollEventId, resolutionRollValue, viewerId]);
 
   const timedPlayerId = currentPlayer && !currentPlayer.isBot ? currentPlayer.id : null;
   const turnStartedAt = game?.turnStartedAt;
@@ -410,7 +419,7 @@ export default function GamePage({ params }: GamePageProps) {
   const presentedDieStyle = rolling ? activeDie : remoteRoll?.dieStyle ?? currentPlayer?.selectedDieStyle ?? "team";
   const diceIsRolling = rolling || Boolean(remoteRoll?.rolling);
   const presentedRollEventId = rolling ? null : remoteRoll?.eventId ?? currentRollEventId;
-  const dieIsSuppressed = Boolean(presentedRollEventId && presentedRollEventId === suppressedRollEventId);
+  const dieIsSuppressed = Boolean(presentedRollEventId && presentedRollEventId === suppressedRollEventId && !remoteRoll?.rolling);
   const showBoardDie = Boolean(presentedPlayer && (rolling || remoteRoll || game.dice !== null) && !dieIsSuppressed);
   const turnCardPlayer = winner ?? noMovePlayer ?? remoteRollPlayer ?? currentPlayer;
   const turnCardRoll = winner ? null : noMoveNotice?.result ?? remoteRoll?.result ?? game.dice;
