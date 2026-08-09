@@ -1,10 +1,10 @@
 import { loadGame, mutateGame, playerForToken, publicGame } from "@/db";
-import { DEFAULT_DIE_STYLES, DIE_STYLES, MARBLE_STYLES, PLAYER_COLORS, type DieStyle, type MarbleStyle, type Player, type PlayerColor } from "@/types/game";
-import { addPlayerMarbles, applyMove, choosePlayerColor, playBotStep, resolveDoorstepChallenge, rollForPlayer, setupEndgameTest, startGame } from "@/lib/game/rules";
+import { DEFAULT_DIE_STYLES, DIE_STYLES, MARBLE_STYLES, PLAYER_COLORS, TURN_TIMEOUT_OPTIONS, type DieStyle, type MarbleStyle, type Player, type PlayerColor, type TurnTimeoutSeconds } from "@/types/game";
+import { addChatMessage, addPlayerMarbles, applyMove, autoRollTimedOutPlayer, choosePlayerColor, playBotStep, resolveDoorstepChallenge, rollForPlayer, setTurnTimeout, setupEndgameTest, startGame } from "@/lib/game/rules";
 
 type ActionBody = {
   actionId?: string;
-  type?: "add-bot" | "customize" | "start" | "roll" | "move" | "bot-step" | "resolve-doorstep" | "setup-endgame";
+  type?: "add-bot" | "customize" | "configure-timeout" | "start" | "roll" | "timeout-roll" | "move" | "chat" | "bot-step" | "resolve-doorstep" | "setup-endgame";
   moveId?: string;
   marbleStyle?: MarbleStyle;
   color?: PlayerColor;
@@ -13,6 +13,9 @@ type ActionBody = {
   expectedUpdatedAt?: number;
   expectedPlayerId?: string | null;
   expectedDice?: number | null;
+  expectedTurnStartedAt?: number;
+  turnTimeoutSeconds?: TurnTimeoutSeconds;
+  message?: string;
 };
 
 export async function POST(request: Request, { params }: { params: Promise<{ code: string }> }) {
@@ -55,6 +58,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
         viewer.marbleStyle = body.marbleStyle;
         viewer.diceStyles = diceStyles;
         viewer.selectedDieStyle = diceStyles.includes(body.dieStyle as DieStyle) ? body.dieStyle : diceStyles[0];
+      } else if (body.type === "configure-timeout") {
+        if (typeof body.turnTimeoutSeconds !== "number" || !TURN_TIMEOUT_OPTIONS.includes(body.turnTimeoutSeconds)) {
+          throw new Error("Choose a valid turn timer.");
+        }
+        setTurnTimeout(game, viewer.id, body.turnTimeoutSeconds);
       } else if (body.type === "start") {
         if (viewer.id !== game.hostPlayerId) throw new Error("Only the host can start the game.");
         startGame(game);
@@ -63,9 +71,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
         const diceStyles = viewer.diceStyles?.length ? viewer.diceStyles : [...DEFAULT_DIE_STYLES];
         if (body.dieStyle && diceStyles.includes(body.dieStyle)) viewer.selectedDieStyle = body.dieStyle;
         rollForPlayer(game, viewer.id);
+      } else if (body.type === "timeout-roll") {
+        if (
+          body.expectedPlayerId !== game.currentPlayerId ||
+          body.expectedDice !== game.dice ||
+          body.expectedTurnStartedAt !== game.turnStartedAt
+        ) return false;
+        autoRollTimedOutPlayer(game);
+        return true;
       } else if (body.type === "move") {
         if (!body.moveId) throw new Error("Choose a move.");
         applyMove(game, viewer.id, body.moveId);
+      } else if (body.type === "chat") {
+        addChatMessage(game, viewer.id, body.message ?? "");
       } else if (body.type === "setup-endgame") {
         if (process.env.NODE_ENV === "production") throw new Error("Endgame setup is available only during local development.");
         if (viewer.id !== game.hostPlayerId) throw new Error("Only the host can load a test position.");

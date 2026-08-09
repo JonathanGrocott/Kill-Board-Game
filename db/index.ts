@@ -87,6 +87,11 @@ export async function createGame(name: string, practice: boolean) {
       currentPlayerId: null,
       dice: null,
       winnerPlayerId: null,
+      doorstepChallenge: null,
+      turnTimeoutSeconds: 120,
+      turnStartedAt: now,
+      turnRolls: [],
+      chatMessages: [],
       createdAt: now,
       updatedAt: now,
       events: [{ id: crypto.randomUUID(), at: now, message: `${host.name} created the room.`, playerId: host.id }],
@@ -113,7 +118,15 @@ export async function loadGame(code: string) {
   const row = await db().prepare("SELECT code, state_json, version, expires_at FROM games WHERE code = ? AND expires_at > ?")
     .bind(code.toUpperCase(), Date.now()).first<GameRow>();
   if (!row) throw new Error("Game not found or expired.");
-  return { state: JSON.parse(row.state_json) as GameState, version: row.version };
+  const state = JSON.parse(row.state_json) as GameState;
+  state.doorstepChallenge ??= null;
+  state.turnTimeoutSeconds ??= 120;
+  state.turnStartedAt ??= state.updatedAt;
+  state.turnRolls ??= [];
+  state.chatMessages ??= [];
+  state.events ??= [];
+  state.processedActionIds ??= [];
+  return { state, version: row.version };
 }
 
 export async function playerForToken(state: GameState, token: string | null) {
@@ -135,6 +148,11 @@ export async function publicGame(state: GameState, token: string | null): Promis
     currentPlayerId: state.currentPlayerId,
     dice: state.dice,
     winnerPlayerId: state.winnerPlayerId,
+    doorstepChallenge: state.doorstepChallenge,
+    turnTimeoutSeconds: state.turnTimeoutSeconds,
+    turnStartedAt: state.turnStartedAt,
+    turnRolls: state.turnRolls,
+    chatMessages: state.chatMessages,
     createdAt: state.createdAt,
     updatedAt: state.updatedAt,
     events: state.events,

@@ -3,9 +3,9 @@ import { describe, it } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Board } from "../components/game/Board";
-import { BASE_POINTS, DOORSTEPS, FAT_CITIES, HOME_POINTS, POTS, TRACK_POINTS, boardPointForViewer } from "../lib/game/board";
+import { BASE_POINTS, DOORSTEPS, DRIVEWAY_STARTS, FAT_CITIES, HOME_POINTS, POTS, TRACK_POINTS, boardPointForViewer } from "../lib/game/board";
 import { automaticDestinationMove } from "../lib/game/interaction";
-import { addPlayerMarbles, applyMove, choosePlayerColor, getLegalMoves, playBotStep, resolveDoorstepChallenge, rollForPlayer, setupEndgameTest, startGame } from "../lib/game/rules";
+import { addChatMessage, addPlayerMarbles, applyMove, autoRollTimedOutPlayer, choosePlayerColor, getLegalMoves, playBotStep, resolveDoorstepChallenge, rollForPlayer, setTurnTimeout, setupEndgameTest, startGame } from "../lib/game/rules";
 import type { GameState, Player, Position } from "../types/game";
 
 function player(id: string, seat: number): Player {
@@ -17,7 +17,9 @@ function state(): GameState {
   const blue = player("blue", 1);
   const game: GameState = {
     code: "ABC234", status: "active", players: [red, blue], marbles: [], hostPlayerId: red.id,
-    currentPlayerId: red.id, dice: null, winnerPlayerId: null, createdAt: 1, updatedAt: 1, events: [], processedActionIds: [],
+    currentPlayerId: red.id, dice: null, winnerPlayerId: null, doorstepChallenge: null,
+    turnTimeoutSeconds: 120, turnStartedAt: 1, turnRolls: [], chatMessages: [],
+    createdAt: 1, updatedAt: 1, events: [], processedActionIds: [],
   };
   addPlayerMarbles(game, red);
   addPlayerMarbles(game, blue);
@@ -59,7 +61,9 @@ describe("Kill rules", () => {
     participants.slice(1).forEach((participant) => { participant.isBot = true; });
     const game: GameState = {
       code: "COLOR1", status: "waiting", players: participants, marbles: [], hostPlayerId: "host",
-      currentPlayerId: null, dice: null, winnerPlayerId: null, createdAt: 1, updatedAt: 1, events: [], processedActionIds: [],
+      currentPlayerId: null, dice: null, winnerPlayerId: null, doorstepChallenge: null,
+      turnTimeoutSeconds: 120, turnStartedAt: 1, turnRolls: [], chatMessages: [],
+      createdAt: 1, updatedAt: 1, events: [], processedActionIds: [],
     };
     participants.forEach((participant) => addPlayerMarbles(game, participant));
 
@@ -290,6 +294,103 @@ describe("Kill rules", () => {
     place(blockedGame, deepBlocker.id, { area: "home", index: 3 });
     rollForPlayer(blockedGame, "red", () => 0.2);
     assert.match(blockedGame.events.at(-1)!.message, /constipated/i);
+
+    const packedGame = state();
+    const packed = packedGame.marbles.filter((marble) => marble.playerId === "red");
+    packed.slice(0, 4).forEach((marble, index) => place(packedGame, marble.id, { area: "home", index: index + 1 }));
+    rollForPlayer(packedGame, "red", () => 0.4);
+    assert.ok(!packedGame.events.some((item) => item.kind === "constipated"));
+  });
+
+  it("announces Cut Across Shorty for the two-count Fat City route", () => {
+    const game = state();
+    const marble = game.marbles.find((item) => item.playerId === "red")!;
+    place(game, marble.id, { area: "track", index: FAT_CITIES.red });
+    game.dice = 2;
+    const shortcut = getLegalMoves(game, "red", 2).find((move) => move.kind === "fat-city")!;
+    applyMove(game, "red", shortcut.id, () => 1);
+    assert.ok(game.events.some((item) => item.kind === "cut-across-shorty"));
+  });
+
+  it("announces a 3-Way-Sniff for three consecutive teams", () => {
+    const game = state();
+    const green = player("green", 2);
+    game.players.push(green);
+    addPlayerMarbles(game, green);
+    const red = game.marbles.find((marble) => marble.playerId === "red")!;
+    const blue = game.marbles.find((marble) => marble.playerId === "blue")!;
+    const greenMarble = game.marbles.find((marble) => marble.playerId === "green")!;
+    place(game, red.id, { area: "track", index: 9 });
+    place(game, blue.id, { area: "track", index: 11 });
+    place(game, greenMarble.id, { area: "track", index: 12 });
+    game.dice = 1;
+    const move = getLegalMoves(game, "red", 1).find((option) => option.marbleId === red.id)!;
+    applyMove(game, "red", move.id, () => 1);
+    assert.ok(game.events.some((item) => item.kind === "three-way-sniff"));
+  });
+
+  it("occasionally announces Sniff-Sniff beside an opponent on their Driveway", () => {
+    const game = state();
+    const red = game.marbles.find((marble) => marble.playerId === "red")!;
+    const blue = game.marbles.find((marble) => marble.playerId === "blue")!;
+    place(game, red.id, { area: "track", index: DRIVEWAY_STARTS.blue });
+    place(game, blue.id, { area: "track", index: DRIVEWAY_STARTS.blue + 2 });
+    game.dice = 1;
+    const move = getLegalMoves(game, "red", 1).find((option) => option.marbleId === red.id)!;
+    applyMove(game, "red", move.id, () => 0);
+    assert.ok(game.events.some((item) => item.kind === "sniff-sniff"));
+  });
+
+  it("recognizes 6-6-3 in one extended turn", () => {
+    const game = state();
+    for (const random of [0.99, 0.99]) {
+      const result = rollForPlayer(game, "red", () => random);
+      applyMove(game, "red", result.moves[0].id, () => 1);
+    }
+    rollForPlayer(game, "red", () => 0.4);
+    assert.deepEqual(game.turnRolls, [6, 6, 3]);
+    assert.ok(game.events.some((item) => item.kind === "six-six-three"));
+  });
+
+  it("announces Auto-Bung when a one packs Home around a waiting Doorstep marble", () => {
+    const game = state();
+    const reds = game.marbles.filter((marble) => marble.playerId === "red");
+    [0, 2, 3, 4].forEach((index, marbleIndex) => place(game, reds[marbleIndex].id, { area: "home", index }));
+    place(game, reds[4].id, { area: "track", index: DOORSTEPS.red });
+    game.dice = 1;
+    const move = getLegalMoves(game, "red", 1).find((option) => option.marbleId === reds[0].id)!;
+    applyMove(game, "red", move.id);
+    assert.equal(game.doorstepChallenge?.marbleId, reds[4].id);
+    assert.ok(game.events.some((item) => item.kind === "auto-bung"));
+  });
+
+  it("server-enforces the configured human auto-roll deadline", () => {
+    const game = state();
+    game.turnTimeoutSeconds = 60;
+    game.turnStartedAt = 1_000;
+    assert.throws(() => autoRollTimedOutPlayer(game, 60_999, () => 0), /not expired/i);
+    const result = autoRollTimedOutPlayer(game, 61_000, () => 0);
+    assert.equal(result.roll, 1);
+    assert.equal(game.currentPlayerId, "red");
+    assert.equal(game.dice, 1);
+    assert.ok(game.marbles.every((marble) => marble.position.area === "base"));
+    assert.ok(game.events.some((item) => item.kind === "auto-roll"));
+  });
+
+  it("lets only the host configure the lobby timer", () => {
+    const game = state();
+    game.status = "waiting";
+    assert.throws(() => setTurnTimeout(game, "blue", 60), /host/i);
+    setTurnTimeout(game, "red", 300);
+    assert.equal(game.turnTimeoutSeconds, 300);
+  });
+
+  it("keeps temporary human table chat trimmed and bounded", () => {
+    const game = state();
+    addChatMessage(game, "red", "  hello   family  ");
+    assert.equal(game.chatMessages[0].message, "hello family");
+    game.players.find((participant) => participant.id === "blue")!.isBot = true;
+    assert.throws(() => addChatMessage(game, "blue", "beep"), /human/i);
   });
 
   it("wins only after all five marbles are Home", () => {

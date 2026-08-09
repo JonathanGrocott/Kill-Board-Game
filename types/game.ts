@@ -5,6 +5,8 @@ export type MarbleStyle = (typeof MARBLE_STYLES)[number];
 export const DIE_STYLES = ["team", "ivory", "amber", "forest"] as const;
 export type DieStyle = (typeof DIE_STYLES)[number];
 export const DEFAULT_DIE_STYLES: DieStyle[] = ["team", "ivory", "amber"];
+export const TURN_TIMEOUT_OPTIONS = [0, 60, 120, 300] as const;
+export type TurnTimeoutSeconds = (typeof TURN_TIMEOUT_OPTIONS)[number];
 export type GameStatus = "waiting" | "active" | "completed";
 export type PositionArea = "base" | "track" | "center" | "home";
 
@@ -32,11 +34,25 @@ export interface Player {
   tokenHash?: string;
 }
 
+export type GameEventKind =
+  | "kill" | "welcome" | "doorstep-killing" | "doorstep-try-1" | "doorstep-try-2" | "doorstep-final"
+  | "back-to-pot" | "fat-city" | "six-again" | "up-tight" | "constipated" | "three-way-sniff"
+  | "sniff-sniff" | "auto-bung" | "bung-hole" | "six-six-three" | "cut-across-shorty" | "auto-roll";
+
 export interface GameEvent {
   id: string;
   at: number;
   message: string;
   playerId?: string;
+  kind?: GameEventKind;
+}
+
+export interface ChatMessage {
+  id: string;
+  at: number;
+  playerId: string;
+  playerName: string;
+  message: string;
 }
 
 export interface DoorstepChallenge {
@@ -56,6 +72,10 @@ export interface GameState {
   dice: number | null;
   winnerPlayerId: string | null;
   doorstepChallenge?: DoorstepChallenge | null;
+  turnTimeoutSeconds: TurnTimeoutSeconds;
+  turnStartedAt: number;
+  turnRolls: number[];
+  chatMessages: ChatMessage[];
   createdAt: number;
   updatedAt: number;
   events: GameEvent[];

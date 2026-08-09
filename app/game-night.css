@@ -199,6 +199,11 @@ body {
 .callout-back-to-pot- { background: #6f432b; color: #ffdfac; border-color: #3d2115; }
 .callout-up-tight- { background: #2f6b4c; color: white; }
 .callout-constipated- { background: #6f432b; color: #ffdfac; }
+.callout-3-way-sniff-, .callout-sniff-sniff- { background: #3f7754; color: #fff4d5; border-color: #21462f; }
+.callout-auto-bung-, .callout-bung-hole- { background: #673b25; color: #ffd891; border-color: #32190e; }
+.callout-6-6-3- { background: #e2a734; color: #4b210c; border-color: #8c4d19; font-size: clamp(20px, 3vw, 44px); }
+.callout-cut-across-shorty- { background: #296a70; color: #fff4d5; border-color: #123c41; font-size: clamp(12px, 1.8vw, 26px); }
+.callout-auto-roll- { background: #745137; color: #f9e7c5; border-color: #3e2819; }
 @keyframes callout-pop { 0% { opacity: 0; transform: translate(-50%, -50%) rotate(-9deg) scale(.2); } 18% { opacity: 1; transform: translate(-50%, -50%) rotate(3deg) scale(1.16); } 30%, 78% { opacity: 1; transform: translate(-50%, -50%) rotate(-4deg) scale(1); } 100% { opacity: 0; transform: translate(-50%, -62%) rotate(-4deg) scale(.9); } }
 
 .lobby-shell, .room-entry, .center-page { color: var(--ivory); background-color: #2c150a; background-image: url("/assets/walnut-table.png"); background-size: 1024px auto; }
@@ -245,6 +250,23 @@ body {
 .seat-card { background: #ead09e; color: #3d2111; border-color: #81502b; border-radius: 10px; box-shadow: 0 4px 0 #3c1e0e; }
 @media (max-width: 540px) { .marble-color-grid { grid-template-columns: repeat(2, 1fr); } }
 .lobby-actions .button { border-radius: 8px; }
+.turn-timer-setting { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 18px auto 4px; color: #eed9b2; font-size: 10px; font-weight: 900; letter-spacing: .14em; }
+.turn-timer-setting select { appearance: none; min-width: 88px; border: 1px solid #a86c36; border-radius: 7px; padding: 8px 28px 8px 10px; background: #efd7a7; color: #3b2011; font-weight: 900; cursor: pointer; }
+.turn-timer { margin-top: 7px; color: #76502d; font-size: 9px; font-weight: 900; letter-spacing: .12em; }
+.game-chat { border: 1px solid #b9906655; border-radius: 10px; background: #28140d99; overflow: hidden; }
+.chat-heading { display: flex; align-items: center; justify-content: space-between; padding: 10px 11px 7px; }
+.chat-heading h3 { margin: 0; color: #ebd2ae; font: italic 700 16px Georgia, serif; }
+.chat-heading span { color: #81bc86; font-size: 8px; font-weight: 900; letter-spacing: .14em; }
+.chat-messages { min-height: 76px; max-height: 180px; overflow-y: auto; padding: 0 10px 7px; }
+.chat-empty { color: #9f8067; font: italic 12px Georgia, serif; }
+.chat-message { display: grid; grid-template-columns: max-content 1fr; gap: 7px; margin: 7px 0; color: #e6d1b7; font-size: 11px; line-height: 1.35; }
+.chat-message b { color: var(--chat-color, #e6b860); }
+.chat-red { --chat-color: #ef7468; }.chat-blue { --chat-color: #77aef1; }.chat-green { --chat-color: #7dca91; }.chat-yellow { --chat-color: #f0c45d; }
+.chat-form { display: grid; grid-template-columns: 1fr auto; border-top: 1px solid #b9906644; }
+.chat-form input { min-width: 0; border: 0; background: #1d0e09; color: #f2dec0; padding: 11px; outline: none; }
+.chat-form input::placeholder { color: #8e715d; }
+.chat-form button { border: 0; border-left: 1px solid #b9906644; background: #bd873d; color: #2d170b; padding: 0 12px; font-size: 9px; font-weight: 900; cursor: pointer; }
+.chat-form button:disabled { opacity: .45; cursor: default; }
 
 @media (max-width: 900px) {
   .game-shell { display: block; height: auto; min-height: 100svh; overflow: visible; }.game-topbar { height: 62px; }.board-column { padding: 12px; }.kill-board { width: min(100%, 740px); }.control-column { border: 0; border-top: 1px solid #d3a25255; }.dice-rack { max-width: 440px; margin-inline: auto; }.marble-style-grid, .dice-style-grid { grid-template-columns: 1fr; }.kit-heading { display: block; }
