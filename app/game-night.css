@@ -22,38 +22,11 @@ body {
   min-height: 0;
   overflow: hidden;
   grid-template-columns: minmax(0, 1fr) clamp(286px, 23vw, 360px);
-  grid-template-rows: 72px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   background-color: #2b140a;
   background-image: url("/assets/walnut-table.png");
   background-size: 1120px auto;
 }
-
-.game-topbar {
-  color: var(--ivory);
-  border-bottom: 1px solid #d3a25266;
-  background: #21130de8;
-  box-shadow: 0 5px 20px #0008;
-  z-index: 30;
-  padding: 0 clamp(16px, 2.4vw, 34px);
-}
-
-.brand-button {
-  color: var(--ivory);
-  display: grid;
-  grid-template-columns: auto auto;
-  grid-template-rows: auto auto;
-  column-gap: 9px;
-  align-items: end;
-  text-align: left;
-  letter-spacing: .05em;
-  line-height: .9;
-}
-.brand-button span { grid-row: 1 / 3; color: #d59a3d; font: italic 700 13px Georgia, serif; letter-spacing: .15em; align-self: center; }
-.brand-button strong { font: 800 22px Georgia, serif; letter-spacing: .04em; }
-.brand-button small { font-size: 8px; letter-spacing: .28em; color: #dcb679; }
-.brand-button.brand-kill { display: block; }
-.brand-button.brand-kill strong { display: inline-block; color: #f8e4b9; font: italic 900 31px/1 Georgia, serif; letter-spacing: -.055em; text-shadow: 2px 2px 0 #7e271c, 4px 4px 0 #140805; transform: skewX(-4deg); }
-.room-pill { color: var(--ivory); border-color: #d3a252; background: #2b190f; box-shadow: inset 0 0 0 2px #0005; }
 
 .board-column { background: transparent; padding: clamp(12px, 2vw, 28px); overflow: hidden; }
 .control-column {
@@ -65,7 +38,7 @@ body {
 }
 
 .kill-board {
-  width: min(100%, calc(100svh - 112px));
+  width: min(100%, calc(100svh - 56px));
   background-color: var(--maple);
   background-image: url("/assets/maple-grain.png");
   background-size: 680px auto;
@@ -278,8 +251,7 @@ body {
 }
 
 @media (max-width: 900px) and (orientation: portrait) {
-  .game-shell { display: grid; height: 100svh; min-height: 0; overflow: hidden; grid-template-columns: 1fr; grid-template-rows: 52px min(100vw, 52svh) minmax(0, 1fr); }
-  .game-topbar { grid-column: 1; height: 52px; padding: 0 12px; }
+  .game-shell { display: grid; height: 100svh; min-height: 0; overflow: hidden; grid-template-columns: 1fr; grid-template-rows: min(100vw, 52svh) minmax(0, 1fr); }
   .board-column { grid-column: 1; padding: 4px; min-height: 0; overflow: hidden; }
   .kill-board { width: min(calc(100vw - 8px), calc(52svh - 8px)); border-width: 5px; border-radius: 2%; }
   .control-column { grid-column: 1; min-height: 0; overflow-y: auto; border: 0; border-top: 1px solid #d3a25255; padding: 7px 10px 10px; }
@@ -298,8 +270,8 @@ body {
 }
 
 @media (max-width: 900px) and (orientation: landscape) {
-  .game-shell { display: grid; height: 100svh; min-height: 0; overflow: hidden; grid-template-columns: minmax(0, 1fr) min(42vw, 330px); grid-template-rows: 46px minmax(0, 1fr); }
-  .game-topbar { height: 46px; padding: 0 12px; }.board-column { padding: 4px; }.kill-board { width: min(100%, calc(100svh - 56px)); border-width: 5px; }
+  .game-shell { display: grid; height: 100svh; min-height: 0; overflow: hidden; grid-template-columns: minmax(0, 1fr) min(42vw, 330px); grid-template-rows: minmax(0, 1fr); }
+  .board-column { padding: 4px; }.kill-board { width: min(100%, calc(100svh - 10px)); border-width: 5px; }
   .control-column { min-height: 0; overflow-y: auto; padding: 7px 10px; }.turn-card { padding: 8px 10px; }.turn-card h2 { font-size: 20px; }
   .dice-panel { padding: 6px 0 4px; }.dice-panel > p { display: none; }
   .dice-rack { display: grid; grid-template-columns: minmax(0, 1fr) 100px; grid-template-rows: auto 50px; gap: 4px 7px; padding: 6px 7px 7px; border-radius: 10px; }
@@ -311,8 +283,7 @@ body {
 }
 
 @media (max-width: 540px) and (max-height: 700px) and (orientation: portrait) {
-  .game-shell { grid-template-rows: 48px 45svh minmax(0, 1fr); }
-  .game-topbar { height: 48px; }
+  .game-shell { grid-template-rows: 45svh minmax(0, 1fr); }
   .kill-board { width: min(calc(100vw - 8px), calc(45svh - 8px)); }
   .marble { width: 8%; }
   .turn-card { min-height: 43px; padding: 5px 9px; }.turn-card h2 { font-size: 18px; }
@@ -321,5 +292,5 @@ body {
 }
 
 @media (max-width: 540px) {
-  .brand-button strong { font-size: 17px; }.brand-button span { font-size: 10px; }.room-pill { font-size: 9px; }.lobby-shell { padding: 18px 12px; }.kit-picker { padding: 14px; border-width: 3px; }.seat-grid { gap: 8px; }
+  .lobby-shell { padding: 18px 12px; }.kit-picker { padding: 14px; border-width: 3px; }.seat-grid { gap: 8px; }
 }

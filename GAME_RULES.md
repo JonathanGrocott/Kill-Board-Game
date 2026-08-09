@@ -119,4 +119,5 @@ The first player to place all five marbles safely into the five Home spaces wins
 - The host configures the human turn timer before starting: Off, 1 minute, 2 minutes, or 5 minutes. The default is 2 minutes. When a human has not rolled by the deadline, the server rolls automatically; it never chooses a legal move for that human. Bots keep their normal visible automated turn flow.
 - Active games include temporary table chat for human players. Messages are plain text, normalized to 160 characters, and the game retains only the most recent 60.
 - Phone layouts prioritize legible marbles and table chat: the board and compact controls share the viewport, nonessential move history is hidden, and chat remains visible without scrolling on common portrait and landscape sizes when no exceptional move-choice panel is open.
+- The room code and copy-link control appear in the lobby only. Active games omit decorative title/navigation chrome so the board, turn status, dice, and chat receive the full screen on desktop and phone.
 - Game records, including chat, are temporary and are deleted after completion or abandonment.

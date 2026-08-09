@@ -425,7 +425,6 @@ export default function GamePage({ params }: GamePageProps) {
   const turnCardRoll = winner ? null : noMoveNotice?.result ?? remoteRoll?.result ?? game.dice;
   return (
     <main className="game-shell">
-      <header className="game-topbar"><button className="brand-button brand-kill" onClick={() => router.push("/")} aria-label="Kill home"><strong>KILL</strong></button><button className="room-pill" onClick={share}>{copied ? "COPIED" : `ROOM ${code}`}</button></header>
       <section className="board-column">
         {winner && <div className="victory-banner"><span>UP TIGHT</span><h1>{winner.name} wins.</h1><button className="button button-primary" onClick={() => router.push("/")}>Play again</button></div>}
         <Board
