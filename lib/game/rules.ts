@@ -248,11 +248,12 @@ export function rollForPlayer(
   const roll = Math.floor(random() * 6) + 1;
   state.dice = roll;
   state.turnRolls = [...(state.turnRolls ?? []), roll];
-  state.events.push({
+  const rollEvent = {
     ...event(`${player.name} rolled ${roll}.`, player.id, "roll"),
     rollValue: roll,
     dieStyle: player.selectedDieStyle ?? "team",
-  });
+  } satisfies GameEvent;
+  state.events.push(rollEvent);
   if (state.turnRolls.slice(-3).join("-") === "6-6-3") {
     state.events.push(event(`${player.name} rolled the legendary 6-6-3!`, player.id, "six-six-three"));
   }
@@ -275,9 +276,13 @@ export function rollForPlayer(
   }
   if (moves.length === 0) {
     const constipated = isConstipated(state, player, roll);
-    state.events.push(event(constipated
-      ? `${player.name} is constipated: their own marbles block Home.`
-      : `${player.name} had no legal move.`, player.id, constipated ? "constipated" : undefined));
+    state.events.push({
+      ...event(constipated
+        ? `${player.name} is constipated: their own marbles block Home.`
+        : `${player.name} rolled a ${roll}, cannot move.`, player.id, constipated ? "constipated" : "no-move"),
+      rollValue: roll,
+      relatedRollEventId: rollEvent.id,
+    });
     if (!deferNoMoveAdvance) advanceTurn(state);
   }
   state.updatedAt = Date.now();
@@ -295,7 +300,11 @@ export function applyMove(state: GameState, playerId: string, optionId: string, 
   captureAt(state, player, option.destination);
 
   marble.position = option.destination;
-  state.events.push(event(`${player.name}: ${option.label}.`, player.id));
+  const relatedRollEvent = state.events.findLast((item) => item.kind === "roll" && item.playerId === player.id);
+  state.events.push({
+    ...event(`${player.name}: ${option.label}.`, player.id, "move"),
+    relatedRollEventId: relatedRollEvent?.id,
+  });
   if (option.destination.area === "track" && option.destination.index === FAT_CITIES[player.color]) {
     state.events.push(event(`${player.name} reached their own Fat City.`, player.id, "fat-city"));
   }

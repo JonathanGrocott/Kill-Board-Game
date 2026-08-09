@@ -262,9 +262,11 @@ describe("Kill rules", () => {
     assert.equal(game.currentPlayerId, "blue");
     assert.equal(game.dice, null);
     const rollEvent = game.events.find((item) => item.kind === "roll");
+    const moveEvent = game.events.find((item) => item.kind === "move");
     assert.deepEqual({ playerId: rollEvent?.playerId, value: rollEvent?.rollValue, style: rollEvent?.dieStyle }, {
       playerId: "red", value: 1, style: "amber",
     });
+    assert.equal(moveEvent?.relatedRollEventId, rollEvent?.id);
   });
 
   it("shows a remote roll's real face while the die is moving", () => {
@@ -295,7 +297,10 @@ describe("Kill rules", () => {
     playBotStep(game, () => 0.2);
     assert.equal(game.dice, 2);
     assert.equal(game.currentPlayerId, "blue");
-    assert.match(game.events.at(-1)!.message, /no legal move/i);
+    const rollEvent = game.events.find((item) => item.kind === "roll");
+    const noMoveEvent = game.events.find((item) => item.kind === "no-move");
+    assert.match(game.events.at(-1)!.message, /cannot move/i);
+    assert.deepEqual({ value: noMoveEvent?.rollValue, roll: noMoveEvent?.relatedRollEventId }, { value: 2, roll: rollEvent?.id });
     playBotStep(game, () => 0.2);
     assert.equal(game.dice, null);
     assert.equal(game.currentPlayerId, "red");
@@ -306,7 +311,7 @@ describe("Kill rules", () => {
     const overshootMarble = overshootGame.marbles.find((marble) => marble.playerId === "red")!;
     place(overshootGame, overshootMarble.id, { area: "home", index: 4 });
     rollForPlayer(overshootGame, "red", () => 0.4);
-    assert.match(overshootGame.events.at(-1)!.message, /no legal move/i);
+    assert.match(overshootGame.events.at(-1)!.message, /cannot move/i);
     assert.ok(!overshootGame.events.some((item) => /constipated/i.test(item.message)));
 
     const blockedGame = state();

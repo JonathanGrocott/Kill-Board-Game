@@ -174,6 +174,7 @@ body {
 .turn-card h2 { font: italic 700 30px Georgia, serif; }
 .roll-status { display: inline-flex; align-items: baseline; gap: 5px; margin: 7px 0 0; color: #76502d; font-size: 9px; font-weight: 900; letter-spacing: .12em; }
 .roll-status strong { color: #3a1c0e; font: 900 18px Georgia, serif; }
+.no-move-status { margin: 7px 0 0; color: #76502d; font: italic 700 12px/1.3 Georgia, serif; }
 .player-row { border-color: #b9906655; }.player-row i { box-shadow: 0 1px 0 #fff7; }.event-log { border-color: #d0a56a; }.event-log p { border-color: #a77d5555; color: #dbc3a5; }
 .move-choices { border-color: #b38b5b; }.move-choices button { background: #f1dfbd; color: #321b10; border-color: #9a6c3f; }
 
