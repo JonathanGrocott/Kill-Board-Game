@@ -358,6 +358,8 @@ export default function GamePage({ params }: GamePageProps) {
   const presentedDieStyle = rolling ? activeDie : remoteRoll?.dieStyle ?? currentPlayer?.selectedDieStyle ?? "team";
   const diceIsRolling = rolling || Boolean(remoteRoll?.rolling);
   const showBoardDie = Boolean(presentedPlayer && (rolling || remoteRoll || game.dice !== null));
+  const turnCardPlayer = winner ?? remoteRollPlayer ?? currentPlayer;
+  const turnCardRoll = winner ? null : remoteRoll?.result ?? game.dice;
   return (
     <main className="game-shell">
       <header className="game-topbar"><button className="brand-button brand-kill" onClick={() => router.push("/")} aria-label="Kill home"><strong>KILL</strong></button><button className="room-pill" onClick={share}>{copied ? "COPIED" : `ROOM ${code}`}</button></header>
@@ -380,7 +382,13 @@ export default function GamePage({ params }: GamePageProps) {
         />
       </section>
       <aside className="control-column">
-        <div className={`turn-card turn-${currentPlayer?.color ?? "none"}`}><span>{winner ? "GAME OVER" : currentPlayer?.id === viewer.id ? "YOUR TURN" : "CURRENT TURN"}</span><h2>{winner?.name ?? currentPlayer?.name}</h2>{currentPlayer?.isBot && !winner && <p className="thinking">Bot is thinking…</p>}{!winner && currentPlayer && !currentPlayer.isBot && game.dice === null && turnTimeoutSeconds > 0 && <p className="turn-timer">AUTO-ROLL · {Math.max(0, Math.ceil((game.turnStartedAt + turnTimeoutSeconds * 1000 - clockNow) / 1000))}s</p>}</div>
+        <div className={`turn-card turn-${turnCardPlayer?.color ?? "none"}`}>
+          <span>{winner ? "GAME OVER" : remoteRoll ? "ROLL RESULT" : currentPlayer?.id === viewer.id ? "YOUR TURN" : "CURRENT TURN"}</span>
+          <h2>{turnCardPlayer?.name}</h2>
+          {turnCardRoll !== null && <p className="roll-status">ROLLED <strong>{turnCardRoll}</strong></p>}
+          {currentPlayer?.isBot && !winner && turnCardRoll === null && <p className="thinking">Bot is thinking…</p>}
+          {!winner && currentPlayer && !currentPlayer.isBot && game.dice === null && !remoteRoll && turnTimeoutSeconds > 0 && <p className="turn-timer">AUTO-ROLL · {Math.max(0, Math.ceil((game.turnStartedAt + turnTimeoutSeconds * 1000 - clockNow) / 1000))}s</p>}
+        </div>
         {!winner && currentPlayer?.id === viewer.id && !viewer.isBot && (
           <div className="dice-panel">
             <DiceRack

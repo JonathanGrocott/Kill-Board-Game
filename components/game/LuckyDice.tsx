@@ -104,7 +104,7 @@ export function BoardDie({ styleName, color, result, rolling, landingSlot = 0, v
       } as CSSProperties}
       aria-live="polite"
     >
-      <img className={`board-die-image die-image-${styleName} die-team-${color}`} src={`/assets/die-${rolling ? 6 : result ?? 6}.png`} alt="" />
+      <img className={`board-die-image die-image-${styleName} die-team-${color}`} src={`/assets/die-${result ?? 6}.png`} alt="" />
       {!rolling && result !== null && <span className="rolled-label">Rolled {result}</span>}
     </div>
   );

@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Board } from "../components/game/Board";
+import { BoardDie } from "../components/game/LuckyDice";
 import { BASE_POINTS, DOORSTEPS, DRIVEWAY_STARTS, FAT_CITIES, HOME_POINTS, POTS, TRACK_POINTS, boardPointForViewer } from "../lib/game/board";
 import { automaticDestinationMove } from "../lib/game/interaction";
 import { addChatMessage, addPlayerMarbles, applyMove, autoRollTimedOutPlayer, choosePlayerColor, getLegalMoves, playBotStep, resolveDoorstepChallenge, rollForPlayer, setTurnTimeout, setupEndgameTest, startGame } from "../lib/game/rules";
@@ -264,6 +265,14 @@ describe("Kill rules", () => {
     assert.deepEqual({ playerId: rollEvent?.playerId, value: rollEvent?.rollValue, style: rollEvent?.dieStyle }, {
       playerId: "red", value: 1, style: "amber",
     });
+  });
+
+  it("shows a remote roll's real face while the die is moving", () => {
+    const html = renderToStaticMarkup(createElement(BoardDie, {
+      styleName: "team", color: "blue", result: 4, rolling: true,
+    }));
+    assert.match(html, /die-4\.png/);
+    assert.doesNotMatch(html, /die-6\.png/);
   });
 
   it("splits a bot roll and move into two visible steps", () => {
