@@ -105,6 +105,7 @@ The first player to place all five marbles safely into the five Home spaces wins
 - Every joined player sees a viewer-relative board: their own Home is centered along the bottom edge, their Base remains immediately to its right, and the rest of the board rotates around Center. Board labels and dice remain upright.
 - Every seat starts with its matching team-color die selected so observers can identify the roller. Human players may keep up to two additional dice in their rack and switch freely.
 - Rolling 6, then 6, then 3 within one uninterrupted extended turn is the celebrated `6-6-3!`. The sequence is based on the player's actual roll chain; it does not require choosing particular routes.
+- The third consecutive 6 in one uninterrupted extended turn is celebrated once as `6-AGAIN. JOE ROLL?`. The ordinary `SIX AGAIN!` callout does not cover this special animation after the move.
 - Bots choose from the same server-generated legal moves as humans.
 - Bot turns are host-driven in two visible phases: first roll and reveal the die, then move or pass. Duplicate or stale bot-step requests must never skip the visible result.
 - Every roll is retained as a short-lived structured game event containing the roller, result, and selected die style. Other players replay that throw even if the roller completes their move between polling refreshes; human and bot rolls must both remain visibly attributable.

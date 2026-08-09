@@ -365,6 +365,21 @@ describe("Kill rules", () => {
     assert.ok(game.events.some((item) => item.kind === "six-six-three"));
   });
 
+  it("celebrates the third consecutive 6 as Joe Roll exactly once", () => {
+    const game = state();
+    for (let rollNumber = 0; rollNumber < 3; rollNumber += 1) {
+      const result = rollForPlayer(game, "red", () => 0.99);
+      applyMove(game, "red", result.moves[0].id, () => 1);
+    }
+    assert.equal(game.events.filter((item) => item.kind === "three-sixes").length, 1);
+    assert.ok(!game.events.at(-1)?.kind);
+
+    const fourth = rollForPlayer(game, "red", () => 0.99);
+    applyMove(game, "red", fourth.moves[0].id, () => 1);
+    assert.equal(game.events.filter((item) => item.kind === "three-sixes").length, 1);
+    assert.equal(game.events.at(-1)?.kind, "six-again");
+  });
+
   it("announces Auto-Bung when a one packs Home around a waiting Doorstep marble", () => {
     const game = state();
     const reds = game.marbles.filter((marble) => marble.playerId === "red");

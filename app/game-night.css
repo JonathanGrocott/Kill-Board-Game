@@ -202,6 +202,7 @@ body {
 .callout-3-way-sniff-, .callout-sniff-sniff- { background: #3f7754; color: #fff4d5; border-color: #21462f; }
 .callout-auto-bung-, .callout-bung-hole- { background: #673b25; color: #ffd891; border-color: #32190e; }
 .callout-6-6-3- { background: #e2a734; color: #4b210c; border-color: #8c4d19; font-size: clamp(20px, 3vw, 44px); }
+.callout-6-again-joe-roll- { background: #d48b27; color: #3b1708; border-color: #7a3d12; font-size: clamp(13px, 2vw, 29px); transform: translate(-50%, -50%) rotate(3deg); }
 .callout-cut-across-shorty- { background: #296a70; color: #fff4d5; border-color: #123c41; font-size: clamp(12px, 1.8vw, 26px); }
 .callout-auto-roll- { background: #745137; color: #f9e7c5; border-color: #3e2819; }
 @keyframes callout-pop { 0% { opacity: 0; transform: translate(-50%, -50%) rotate(-9deg) scale(.2); } 18% { opacity: 1; transform: translate(-50%, -50%) rotate(3deg) scale(1.16); } 30%, 78% { opacity: 1; transform: translate(-50%, -50%) rotate(-4deg) scale(1); } 100% { opacity: 0; transform: translate(-50%, -62%) rotate(-4deg) scale(.9); } }

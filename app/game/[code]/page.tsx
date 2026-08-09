@@ -20,7 +20,7 @@ const CALLOUTS: Partial<Record<GameEventKind, string>> = {
   kill: "KILL!", "fat-city": "FAT CITYYY!", "six-again": "SIX AGAIN!", "up-tight": "UP TIGHT!",
   constipated: "CONSTIPATED!", "three-way-sniff": "3-WAY-SNIFF!", "sniff-sniff": "SNIFF-SNIFF!",
   "auto-bung": "AUTO-BUNG!", "bung-hole": "BUNG HOLE!", "six-six-three": "6-6-3!",
-  "cut-across-shorty": "CUT ACROSS SHORTY!", "auto-roll": "AUTO-ROLL!",
+  "three-sixes": "6-AGAIN. JOE ROLL?", "cut-across-shorty": "CUT ACROSS SHORTY!", "auto-roll": "AUTO-ROLL!",
 };
 
 export default function GamePage({ params }: GamePageProps) {

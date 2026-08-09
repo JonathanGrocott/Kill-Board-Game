@@ -256,6 +256,9 @@ export function rollForPlayer(
   if (state.turnRolls.slice(-3).join("-") === "6-6-3") {
     state.events.push(event(`${player.name} rolled the legendary 6-6-3!`, player.id, "six-six-three"));
   }
+  if (state.turnRolls.length === 3 && state.turnRolls.every((value) => value === 6)) {
+    state.events.push(event(`${player.name} rolled three consecutive 6s. 6-Again. Joe Roll?`, player.id, "three-sixes"));
+  }
   const moves = getLegalMoves(state, playerId, roll);
   const challenge = state.doorstepChallenge;
   if (challenge?.playerId === playerId && !challenge.pendingResolution) {
@@ -315,7 +318,8 @@ export function applyMove(state: GameState, playerId: string, optionId: string, 
   } else if (roll === 6) {
     state.dice = null;
     state.turnStartedAt = Date.now();
-    state.events.push(event(`${player.name} earned another roll.`, player.id, "six-again"));
+    const thirdConsecutiveSix = state.turnRolls.length === 3 && state.turnRolls.every((value) => value === 6);
+    state.events.push(event(`${player.name} earned another roll.`, player.id, thirdConsecutiveSix ? undefined : "six-again"));
   } else {
     advanceTurn(state);
   }

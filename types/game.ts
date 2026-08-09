@@ -37,7 +37,7 @@ export interface Player {
 export type GameEventKind =
   | "roll" | "kill" | "welcome" | "doorstep-killing" | "doorstep-try-1" | "doorstep-try-2" | "doorstep-final"
   | "back-to-pot" | "fat-city" | "six-again" | "up-tight" | "constipated" | "three-way-sniff"
-  | "sniff-sniff" | "auto-bung" | "bung-hole" | "six-six-three" | "cut-across-shorty" | "auto-roll";
+  | "sniff-sniff" | "auto-bung" | "bung-hole" | "six-six-three" | "three-sixes" | "cut-across-shorty" | "auto-roll";
 
 export interface GameEvent {
   id: string;
